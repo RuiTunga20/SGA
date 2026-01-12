@@ -81,9 +81,13 @@
                     <h4>Detalhes do Documento</h4>
                     <hr style="margin: 1rem 0;">
                     <div class="details-grid">
-                        <div class="detail-item"><div class="label">Status</div><div class="value"><span class="status-badge status-{{ documento.status }}">{{ documento.get_status_display }}</span></div></div>
+                        <div class="detail-item"><div class="label">Protocolo</div><div class="value">{{ documento.numero_protocolo }}</div></div>
+                        <div class="detail-item"><div class="label">Tipo de Documento</div><div class="value">{{ documento.tipo_documento.nome }}</div></div>
+                        <div class="detail-item"><div class="label">Origem</div><div class="value">{{ documento.get_origem_display }}</div></div>
+                        <div class="detail-item"><div class="label">Prioridade</div><div class="value">{{ documento.get_prioridade_display }}</div></div>
+                        <div class="detail-item"><div class="label">Estado</div><div class="value"><span class="status-badge status-{{ documento.status }}">{{ documento.get_status_display }}</span></div></div>
                         <div class="detail-item"><div class="label">Departamento Atual</div><div class="value">{{ documento.departamento_atual.nome }}</div></div>
-                        <div class="detail-item"><div class="label">Prazo</div><div class="value">{{ documento.data_prazo|date:"d/m/Y" }}</div></div>
+                        <div class="detail-item"><div class="label">Data</div><div class="value">{{ documento.data_criacao|date:"d/m/Y H:i" }}</div></div>
 
                         {% if documento.arquivo %}
                         <div class="detail-item">
@@ -94,7 +98,7 @@
 
                     </div>
                      <div class="detail-item">
-                          <div class="label">Observações</div>
+                          <div class="label">Pareceres</div>
                      {% for observacoes in observacoes %}
                          {% if observacoes.observacoes %}
 
@@ -157,7 +161,7 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="{{ encaminhar_form.observacoes.id_for_label }}" class="form-label">Observações:</label>
+                                    <label for="{{ encaminhar_form.observacoes.id_for_label }}" class="form-label">Pareceres</label>
                                     {{ encaminhar_form.observacoes }}
                                     <div class="form-errors">{{ encaminhar_form.observacoes.errors }}</div>
                                 </div>

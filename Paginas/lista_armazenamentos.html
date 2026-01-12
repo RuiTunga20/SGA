@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGA - {{ titulo }}</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    :root {
+        --primary-orange: red;
+        --text-grey: #5a5a5a;
+        --text-grey-dark: #333333;
+        --primary-red: #c8102e;
+        --accent-gold: #daa520;
+        --bg-primary: #f4f4f4;
+        --bg-secondary: #ffffff;
+        --border: #cccccc;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+        --success: #28a745;
+        --info: #17a2b8;
+    }
+
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        background: var(--bg-primary);
+        color: #333;
+        line-height: 1.6;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .content-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 2rem;
+        box-shadow: var(--shadow);
+        margin-top: 2rem;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        color: var(--primary-red);
+        border-bottom: 1px solid #eee;
+        padding-bottom: 1rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.5rem;
+        margin: 0;
+    }
+
+    /* Documento Info */
+    .document-info {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .document-info h4 {
+        color: var(--text-grey-dark);
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .document-info p {
+        margin: 0.25rem 0;
+        font-size: 0.9rem;
+        color: var(--text-grey);
+    }
+
+    .document-info .protocolo {
+        font-weight: bold;
+        color: var(--primary-red);
+    }
+
+    /* Tabela */
+    .table-container {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+
+    thead {
+        background: var(--bg-primary);
+    }
+
+    th {
+        text-align: left;
+        padding: 1rem;
+        font-weight: bold;
+        color: var(--text-grey-dark);
+        border-bottom: 2px solid var(--border);
+    }
+
+    td {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+        vertical-align: top;
+    }
+
+    tr:hover {
+        background: #f8f9fa;
+    }
+
+    .location-info {
+        font-weight: bold;
+        color: var(--text-grey-dark);
+    }
+
+    .location-details {
+        font-size: 0.85rem;
+        color: var(--text-grey);
+        margin-top: 0.25rem;
+    }
+
+    .document-link {
+        color: var(--primary-red);
+        text-decoration: none;
+        font-weight: bold;
+    }
+
+    .document-link:hover {
+        text-decoration: underline;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 3px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+
+    .status-ativo {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-inativo {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-grey);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    /* Botões */
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 3px;
+        border: 1px solid transparent;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        text-decoration: none;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary {
+        background: var(--primary-red);
+        color: white;
+        border-color: var(--primary-red);
+    }
+
+    .btn-primary:hover {
+        background: #a00d24;
+    }
+
+    .btn-secondary {
+        background: #e9e9e9;
+        color: var(--text-grey-dark);
+        border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+        background: #dcdcdc;
+    }
+
+    .btn-sm {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    /* Paginação */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eee;
+    }
+
+    .pagination a, .pagination span {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        text-decoration: none;
+        color: var(--text-grey-dark);
+    }
+
+    .pagination a:hover {
+        background: var(--bg-primary);
+    }
+
+    .pagination .current {
+        background: var(--primary-red);
+        color: white;
+        border-color: var(--primary-red);
+    }
+
+    /* Alertas */
+    .alert {
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+
+    .alert-info {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+
+    @media (max-width: 768px) {
+        th, td {
+            padding: 0.75rem 0.5rem;
+        }
+    }
+</style>
+</head>
+<body>
+    {% include "menu.html" %}
+
+    <div class="container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="content-card">
+            <div class="page-header">
+                <h1>📁 {{ titulo }}</h1>
+                <a href="{% url 'listar_documentos' %}" class="btn btn-secondary">← Voltar</a>
+            </div>
+
+            {% if documento %}
+            <div class="document-info">
+                <h4>Documento</h4>
+                <p><span class="protocolo">{{ documento.numero_protocolo }}</span> - {{ documento.titulo }}</p>
+                <p><strong>Tipo:</strong> {{ documento.tipo_documento }}</p>
+                <p><strong>Remetente:</strong> {{ documento.Utente }}</p>
+            </div>
+            {% endif %}
+
+            {% if armazenamentos %}
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            {% if not documento %}
+                            <th>Documento</th>
+                            {% endif %}
+                            <th>Localização</th>
+                            <th>Registado Por</th>
+                            <th>Data</th>
+                            <th>Estado</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for arm in armazenamentos %}
+                        <tr>
+                            {% if not documento %}
+                            <td>
+                                <a href="{% url 'detalhe_documento' documento_id=arm.documento.id %}" class="document-link">
+                                    {{ arm.documento.numero_protocolo }}
+                                </a>
+                                <div class="location-details">{{ arm.documento.titulo|truncatewords:8 }}</div>
+                            </td>
+                            {% endif %}
+                            <td>
+                                <div class="location-info">{{ arm.localizacao_completa }}</div>
+                                {% if arm.observacoes %}
+                                <div class="location-details">{{ arm.observacoes|truncatewords:10 }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ arm.registrado_por.get_full_name|default:arm.registrado_por.username }}
+                            </td>
+                            <td>
+                                {{ arm.data_armazenamento|date:"d/m/Y" }}
+                                <div class="location-details">{{ arm.data_armazenamento|time:"H:i" }}</div>
+                            </td>
+                            <td>
+                                {% if arm.ativo %}
+                                <span class="status-badge status-ativo">Ativo</span>
+                                {% else %}
+                                <span class="status-badge status-inativo">Retirado</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'detalhe_documento' documento_id=arm.documento.id %}" class="btn btn-secondary btn-sm">
+                                    Ver Documento
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginação -->
+            {% if armazenamentos.has_other_pages %}
+            <div class="pagination">
+                {% if armazenamentos.has_previous %}
+                    <a href="?page=1">« Primeira</a>
+                    <a href="?page={{ armazenamentos.previous_page_number }}">‹ Anterior</a>
+                {% endif %}
+
+                <span class="current">
+                    Página {{ armazenamentos.number }} de {{ armazenamentos.paginator.num_pages }}
+                </span>
+
+                {% if armazenamentos.has_next %}
+                    <a href="?page={{ armazenamentos.next_page_number }}">Próxima ›</a>
+                    <a href="?page={{ armazenamentos.paginator.num_pages }}">Última »</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="empty-state">
+                <span style="font-size: 3rem;">📭</span>
+                <h3>Nenhum armazenamento registado</h3>
+                <p>Não existem documentos armazenados para exibir.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
