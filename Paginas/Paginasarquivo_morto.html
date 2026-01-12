@@ -1,0 +1,195 @@
+
+
+
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGA - Gestão de Arquivos</title>
+<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* -- PALETA DE CORES: Inspirada no SEPE.GOV.AO -- */
+        :root {
+            --primary-orange: red;
+            --text-grey: #5a5a5a;
+            --text-grey-dark: #333333;
+            --primary-red: #c8102e; /* Mantido para o formulário */
+            --accent-gold: #daa520; /* Mantido para o formulário */
+            --bg-primary: #f4f4f4;
+            --bg-secondary: #ffffff;
+            --border: #cccccc;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--bg-primary);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* --- CABEÇALHO --- */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 4px solid var(--primary-orange);
+            padding: 1rem 2rem;
+        }
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        /* ... (restante do seu CSS original do cabeçalho) ... */
+
+        /* --- ESTILOS DO FORMULÁRIO/TABELA --- */
+        .form-container {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 3px; padding: 2rem; box-shadow: var(--shadow);
+            margin-top: 2rem;
+        }
+        .form-container h3 {
+            margin-bottom: 1.5rem; color: var(--primary-red); font-size: 1.25rem;
+            border-bottom: 1px solid #eee; padding-bottom: 1rem;
+        }
+        
+        /* --- NOVO CSS PARA A PESQUISA --- */
+        .search-container {
+            margin-bottom: 1.5rem;
+        }
+        #table-search-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            font-size: 1rem;
+        }
+        #table-search-input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
+        }
+
+        .documents-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .documents-table th, .documents-table td {
+            padding: 0.75rem 1rem;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .btn.btn-primary {
+             background: var(--primary-red);
+             color: white;
+             border-color: var(--primary-red);
+             text-decoration: none;
+             padding: 0.5rem;
+             display: inline-block;
+             text-align: center;
+        }
+        /* ... (restante do seu CSS original do formulário) ... */
+</style>
+</head>
+<body>
+    {% include "menu.html" %}
+
+    <div class="container">
+        <div class="form-container">
+            <h3>{% if form.instance.pk %}Editar Documento{% else %}Documentos Recebidos{% endif %}</h3>
+
+            <div class="search-container">
+                <input type="search" id="table-search-input" placeholder="🔎 Pesquisar na tabela...">
+            </div>
+             {% if documentos %}
+    <table class="documents-table">
+        <thead>
+            <tr>
+                <th>Protocolo</th>
+                <th>Documento</th>
+                <th>Status Final</th>
+                <th>Data de Conclusão</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="documents-table-body">
+            {% for doc in documentos %}
+            {{doc}}
+            <tr>
+                <td>{{ doc.numero_protocolo }}</td>
+                <td>
+                    <div class="document-title">{{ doc.titulo|truncatechars:30 }}</div>
+                </td>
+                <td>
+                    <span class="status-badge status-{{ doc.status }}">{{ doc.get_status_display }}</span>
+                </td>
+                <td>{{ doc.data_conclusao|date:"d/m/Y H:i" }}</td>
+                <td>
+                    <a href="{% url 'detalhe_documento' doc.id %}" class="btn-action" title="Ver Detalhes">
+                        👁️ Ver Detalhes
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">🗄️</div>
+        <h4>O Arquivo Morto está vazio</h4>
+        <p>Nenhum documento foi encontrado com os critérios de busca ou ainda não existem documentos finalizados.</p>
+    </div>
+    {% endif %}
+           
+        </div>
+    </div>
+
+   <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Seleciona o campo de pesquisa e as linhas da tabela
+            const searchInput = document.getElementById('table-search-input');
+            const tableRows = document.querySelectorAll('#documents-table-body tr');
+
+            // Adiciona um "ouvinte" para o evento de digitação
+            searchInput.addEventListener('keyup', function(event) {
+                const searchTerm = event.target.value.toLowerCase();
+
+                // Para cada linha da tabela
+                tableRows.forEach(row => {
+                    // Pega todo o texto da linha e converte para minúsculas
+                    const rowText = row.textContent.toLowerCase();
+
+                    // Verifica se o texto da linha inclui o termo pesquisado
+                    if (rowText.includes(searchTerm)) {
+                        // Se incluir, mostra a linha
+                        row.style.display = ""; // "" reverte para o padrão (table-row)
+                    } else {
+                        // Se não incluir, esconde a linha
+                        row.style.display = "none";
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
+      
+
+

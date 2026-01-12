@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGA - Gestão de Arquivos</title>
+<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-orange: red;
+            --text-grey: #5a5a5a;
+            --bg-secondary: #ffffff;
+            --border: #cccccc;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+            /* Novas cores para os alertas */
+            --alert-error-bg: #fef2f2;
+            --alert-error-border: #fca5a5;
+            --alert-error-text: #b91c1c;
+            --alert-success-bg: #f0fdf4;
+            --alert-success-border: #86efac;
+            --alert-success-text: #15803d;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f4f4;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* --- ESTILOS DAS MENSAGENS --- */
+        .messages-container {
+            padding: 0 2rem;
+            max-width: 1200px;
+            margin: 1rem auto 0 auto;
+        }
+        .alert {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            /* NOVO: Transição para o desaparecimento suave */
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
+        }
+        /* NOVO: Classe para o estado de desaparecimento */
+        .alert.fade-out {
+            opacity: 0;
+        }
+
+        .alert.alert-error {
+            color: var(--alert-error-text);
+            background-color: var(--alert-error-bg);
+            border-color: var(--alert-error-border);
+        }
+        .alert.alert-success {
+            color: var(--alert-success-text);
+            background-color: var(--alert-success-bg);
+            border-color: var(--alert-success-border);
+        }
+
+        .alert .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.7;
+        }
+        .alert .close-btn:hover {
+            opacity: 1;
+        }
+
+        /* --- CABEÇALHO --- */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 4px solid var(--primary-orange);
+            padding: 1rem 2rem;
+            position: relative;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo-area {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--text-grey);
+        }
+
+        .logo .orange-text {
+            color: var(--primary-orange);
+        }
+
+        .department-name {
+            font-size: 0.85rem;
+            color: #777;
+            margin-top: -5px;
+            font-weight: normal;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .main-nav ul {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            list-style: none;
+        }
+
+        .main-nav a {
+            text-decoration: none;
+            color: var(--text-grey);
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: color 0.2s ease;
+        }
+
+        .main-nav a:hover {
+            color: var(--primary-orange);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .btn-header {
+            background: var(--primary-orange);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: opacity 0.2s ease;
+            border: none;
+        }
+        .btn-header:hover {
+            opacity: 0.9;
+        }
+        .btn-login {
+            background: transparent;
+            color: var(--primary-orange);
+            border: 2px solid var(--primary-orange);
+        }
+        .btn-login:hover {
+            background: var(--primary-orange);
+            color: white;
+            opacity: 1;
+        }
+
+        .hamburger-menu {
+             display: none;
+             background: none;
+             border: none;
+             cursor: pointer;
+        }
+
+        .notification-bell {
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            color: var(--text-grey);
+        }
+        .notification-count {
+            position: absolute;
+            top: -5px;
+            right: -10px;
+            background-color: var(--primary-orange);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .notifications-dropdown {
+            display: none;
+            position: absolute;
+            top: 150%;
+            right: 0;
+            width: 320px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            border: 1px solid #eee;
+            z-index: 100;
+        }
+        .notifications-dropdown.show {
+            display: block;
+        }
+        .notification-item {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        .notification-item.unread {
+            background-color: #f8fafc;
+        }
+        .notification-item a {
+            text-decoration: none;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 992px) {
+            .main-nav {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                width: 100%;
+                background: white;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                z-index: 100;
+            }
+            .main-nav.is-open {
+                display: block;
+            }
+            .main-nav ul {
+                flex-direction: column;
+                padding: 1rem 0;
+                gap: 0;
+            }
+            .main-nav ul li {
+                width: 100%;
+            }
+            .main-nav ul li a {
+                padding: 1rem 2rem;
+                display: block;
+                width: 100%;
+            }
+            .hamburger-menu {
+                display: block;
+            }
+        }
+</style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-area">
+                <a href="{% url 'Painel' %}"><div class="logo">sigap<span class="orange-text">.gov.ao</span></div>
+                {% if user.is_authenticated %}
+                    <div class="department-name"> {% if user.is_staff %}
+                            <a href="/Painel-Control/" class="">{{ user.username }}</a>
+                        {% else %}
+                            <a href="/" class="">{{ user.username }}</a>
+                        {% endif %}
+                         {% if user.departamento %}
+  - {{ user.departamento }}
+{% else %}
+  - {{ user.seccao }}
+{% endif %}
+
+                        </div>
+
+
+                {% endif %}
+                </a>
+
+            </div>
+            <div class="header-right">
+                <nav class="main-nav" id="main-nav">
+                    <ul>
+                        <li><a href="{% url 'criar_documento' %}">Reristro de Entrada</a></li>
+                        <li><a href="{% url 'listar_documentos' %}">Expedientes</a></li>
+                        <li><a href="{% url 'pendencias' %}">Pendentes</a></li>
+                        <li><a href="{% url 'arquivo_morto' %}">Arquivo Morto</a></li>
+                        <li><a href="{% url 'logout' %}" class="">Sair</a></li>
+
+
+                    </ul>
+                </nav>
+                <div class="header-actions">
+                    {% if user.is_authenticated %}
+
+                        <div class="notification-bell" id="notificationBell">
+                            <span>🔔</span>
+                            {% if unread_notifications_count > 0 %}
+                                <div class="notification-count" id="notificationCount">{{ unread_notifications_count }}</div>
+                            {% endif %}
+                            <div class="notifications-dropdown" id="notificationsDropdown">
+                                <div style="padding: 1rem; font-weight: bold; border-bottom: 1px solid #eee;">Notificações</div>
+                                {% for notification in recent_notifications %}
+                                    <div class="notification-item {% if not notification.lida %}unread{% endif %}">
+                                        <a href="{{ notification.link }}">
+                                            {{ notification.mensagem }}
+                                            <small style="display: block; color: #999; margin-top: 5px;">{{ notification.data_criacao|timesince }} atrás</small>
+                                        </a>
+                                    </div>
+                                {% empty %}
+                                    <div style="padding: 1rem; text-align: center;">Nenhuma notificação.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <a href="#" class="btn-header btn-login">Entrar</a>
+                    {% endif %}
+                    <div class="menu-icons">
+                        <button class="hamburger-menu" id="hamburger-menu" aria-label="Menu">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    {% if messages %}
+    <div class="messages-container">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <span>{{ message }}</span>
+                <button class="close-btn" onclick="this.parentElement.style.display='none';">&times;</button>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- LÓGICA DO MENU HAMBURGER ---
+    const hamburgerButton = document.getElementById('hamburger-menu');
+    const mainNav = document.getElementById('main-nav');
+    if (hamburgerButton && mainNav) {
+        hamburgerButton.addEventListener('click', function() {
+            mainNav.classList.toggle('is-open');
+        });
+    }
+
+    // --- LÓGICA DAS NOTIFICAÇÕES ---
+    const bell = document.getElementById('notificationBell');
+    const dropdown = document.getElementById('notificationsDropdown');
+    const countBadge = document.getElementById('notificationCount');
+
+    if (bell && dropdown) {
+        bell.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdown.classList.toggle('show');
+
+            if (countBadge && countBadge.style.display !== 'none') {
+                fetch("{% url 'marcar_notificacoes_lidas' %}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        countBadge.style.display = 'none';
+                    }
+                });
+            }
+        });
+
+        document.addEventListener('click', function() {
+            if (dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        dropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+
+    // ==========================================================
+    // INÍCIO DA NOVA LÓGICA PARA AS MENSAGENS DESAPARECEREM
+    // ==========================================================
+    const alerts = document.querySelectorAll('.alert');
+    if (alerts) {
+        alerts.forEach(function(alert) {
+            // Define o temporizador para 5 segundos (5000 milissegundos)
+            setTimeout(function() {
+                // Adiciona a classe que ativa a animação de fade-out
+                alert.classList.add('fade-out');
+
+                // Espera a animação terminar para remover o elemento
+                setTimeout(function() {
+                    alert.style.display = 'none';
+                }, 500); // Este tempo deve ser igual ao da transição no CSS
+
+            }, 5000); // 5 segundos
+        });
+    }
+    // ==========================================================
+    // FIM DA NOVA LÓGICA
+    // ==========================================================
+});
+    document.addEventListener('DOMContentLoaded', function() {
+
+    // ... (seu código existente para o menu hamburger, dropdown de notificações, etc.) ...
+
+
+    // ==========================================================
+    // INÍCIO DA NOVA LÓGICA PARA ATUALIZAÇÃO AUTOMÁTICA
+    // ==========================================================
+
+    const notificationBadge = document.getElementById('notificationCount');
+    const notificationBell = document.getElementById('notificationBell');
+
+    function verificarNovasNotificacoes() {
+        // Usa a API Fetch para fazer uma chamada à nossa nova view
+        fetch("{% url 'verificar_notificacoes' %}")
+            .then(response => response.json())
+            .then(data => {
+                const count = data.unread_notifications_count;
+
+                if (notificationBadge) {
+                    if (count > 0) {
+                        // Se houver notificações, atualiza o número e mostra o balão
+                        notificationBadge.innerText = count;
+                        notificationBadge.style.display = 'flex';
+                    } else {
+                        // Se não houver, esconde o balão
+                        notificationBadge.style.display = 'none';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error("Erro ao verificar notificações:", error);
+            });
+    }
+
+    // Chama a função a cada 15 segundos (15000 milissegundos)
+    setInterval(verificarNovasNotificacoes, 15000);
+
+    // Também chama a função uma vez assim que a página carrega
+    verificarNovasNotificacoes();
+
+    // ==========================================================
+    // FIM DA NOVA LÓGICA
+    // ==========================================================
+});
+document.addEventListener('DOMContentLoaded', function() {
+
+    // ... (seu código do menu hamburger, etc., continua aqui) ...
+
+    // ==========================================================
+    // INÍCIO DA LÓGICA DE DIAGNÓSTICO
+    // ==========================================================
+
+    function verificarNovasNotificacoes() {
+        console.log("A verificar notificações..."); // Ponto 1: Confirma que a função está a ser chamada
+
+        fetch("{% url 'verificar_notificacoes' %}")
+            .then(response => response.json())
+            .then(data => {
+                console.log("Dados recebidos da API:", data); // Ponto 2: Mostra os dados que o Django enviou
+
+                const count = data.unread_notifications_count;
+                console.log("Contagem de notificações não lidas:", count); // Ponto 3: Mostra o número exato
+
+                const notificationBell = document.getElementById('notificationBell');
+                let notificationBadge = document.getElementById('notificationCount');
+
+                // Ponto 4: Verifica se os elementos HTML foram encontrados
+                console.log("Elemento do sino (bell) encontrado:", notificationBell);
+                console.log("Elemento do balão (badge) existente:", notificationBadge);
+
+                if (count > 0) {
+                    if (!notificationBadge) {
+                        console.log("O balão (badge) não existe. A tentar criar..."); // Ponto 5: Informa que vai criar o balão
+                        notificationBadge = document.createElement('div');
+                        notificationBadge.id = 'notificationCount';
+                        notificationBadge.className = 'notification-count';
+
+                        if (notificationBell) {
+                            notificationBell.appendChild(notificationBadge);
+                            console.log("Balão (badge) criado e adicionado ao sino."); // Ponto 6: Confirma a criação
+                        } else {
+                            console.error("ERRO: Não foi possível adicionar o balão porque o sino (notificationBell) não foi encontrado!");
+                        }
+                    }
+
+                    console.log("A atualizar o texto do balão para:", count); // Ponto 7: Mostra o que vai fazer
+                    notificationBadge.innerText = count;
+                    notificationBadge.style.display = 'flex';
+
+                } else {
+                    if (notificationBadge) {
+                        console.log("Contagem é 0. A esconder o balão."); // Ponto 8: Informa que vai esconder
+                        notificationBadge.style.display = 'none';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error("ERRO CRÍTICO ao verificar notificações:", error);
+            });
+    }
+
+    setInterval(verificarNovasNotificacoes, 15000);
+    verificarNovasNotificacoes(); // Verifica uma vez ao carregar a página
+});
+</script>
+</body>
+</html>

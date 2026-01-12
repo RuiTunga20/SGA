@@ -1,0 +1,31 @@
+<aside class="sidebar">
+    <h3>Navegação</h3>
+    <nav>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="#" class="nav-link active">
+                    <span class="nav-icon">📂</span>
+                    Todos os Arquivos
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'criar_documento' %}" class="nav-link">
+                    <span class="nav-icon">📤</span>
+                    Upload de Documentos
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'listar_documentos' %}" class="nav-link">
+                    <span class="nav-icon">🔍</span>
+                    Pesquisar Documentos
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'listar_movimento' %}" class="nav-link">
+                    <span class="nav-icon">📨</span>
+                    Encaminhar Documentos
+                </a>
+            </li>
+        </ul>
+    </nav>
+</aside>

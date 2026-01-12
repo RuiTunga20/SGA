@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGA - Gestão de Arquivos</title>
+<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* -- PALETA DE CORES: Inspirada no SEPE.GOV.AO -- */
+        :root {
+            --primary-orange: red;
+            --text-grey: #5a5a5a;
+            --text-grey-dark: #333333;
+            --primary-red: #c8102e; /* Mantido para o formulário */
+            --accent-gold: #daa520; /* Mantido para o formulário */
+            --bg-primary: #f4f4f4;
+            --bg-secondary: #ffffff;
+            --border: #cccccc;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--bg-primary);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* --- CABEÇALHO --- */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 4px solid var(--primary-orange);
+            padding: 1rem 2rem;
+        }
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        /* ... (restante do seu CSS original do cabeçalho) ... */
+
+        /* --- ESTILOS DO FORMULÁRIO/TABELA --- */
+        .form-container {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 3px; padding: 2rem; box-shadow: var(--shadow);
+            margin-top: 2rem;
+        }
+        .form-container h3 {
+            margin-bottom: 1.5rem; color: var(--primary-red); font-size: 1.25rem;
+            border-bottom: 1px solid #eee; padding-bottom: 1rem;
+        }
+        
+        /* --- NOVO CSS PARA A PESQUISA --- */
+        .search-container {
+            margin-bottom: 1.5rem;
+        }
+        #table-search-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            font-size: 1rem;
+        }
+        #table-search-input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
+        }
+
+        .documents-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .documents-table th, .documents-table td {
+            padding: 0.75rem 1rem;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        /* Destaque para documentos no meu departamento */
+        .meu-departamento {
+            border-left: 4px solid #28a745;
+            background-color: rgba(40, 167, 69, 0.05);
+        }
+        .btn.btn-primary {
+             background: var(--primary-red);
+             color: white;
+             border-color: var(--primary-red);
+             text-decoration: none;
+             padding: 0.5rem;
+             display: inline-block;
+             text-align: center;
+        }
+        /* ... (restante do seu CSS original do formulário) ... */
+</style>
+</head>
+<body>
+    {% include "menu.html" %}
+
+    <div class="container">
+        <div class="form-container">
+            <h3>{% if form.instance.pk %}Editar Documento{% else %}Documentos Recebidos{% endif %}</h3>
+
+            <div class="search-container">
+                <input type="search" id="table-search-input" placeholder="🔎 Pesquisar na tabela...">
+            </div>
+
+            <div class="table-container">
+                {% if documentos %}
+               
+                 <table class="documents-table">
+                    <thead>
+                        <tr>
+                            <th>Protocolo</th>
+
+                            <th>Tipo de Documento</th>
+                          
+                            <th>Origem</th>
+                            <th>Prioridade</th>
+                            <th>Assunto</th>
+                            <th>Data</th>
+
+
+
+                            <th>Acções</th>
+
+                        </tr>
+                    </thead>
+                    <tbody id="documents-table-body" >
+                        {% for documento in documentos %}
+                        <tr class="{% if documento.departamento_atual == request.user.departamento or documento.departamento_atual == request.user.seccao.Departamento %}meu-departamento{% endif %}">
+                            <td>
+                                <div class="document-title">{{ documento.numero_protocolo  }}</div>
+                                
+                            </td>
+                            <td>
+                                <div class="document-title">{{ documento.tipo_documento  }}</div>
+
+                            </td>
+                            <td>
+                                <div class="document-title">{{ documento.origem  }}</div>
+
+                            </td>
+                             <td>
+                                <div class="document-title">{{ documento.prioridade  }}</div>
+
+                            </td>
+                            <td>
+                                <div class="document-title">{{ documento.titulo|truncatechars:50  }}</div>
+                                
+                            </td>
+
+                           
+                            <td>{{ documento.data_criacao|date:"d/m/Y" }}</td>
+
+
+                            <td>
+                                <a name="" id="" style="background-color: #daa520;" class="btn btn-primary" href="{% url 'detalhe_documento'  documento.id %}" role="button"> Detalhes</a>
+
+                                {% if not documento.movimentacoes.exists %}
+                                <a name="" id="" class="btn btn-primary" href="{% url 'editar_documento'  documento.id %}" role="button"> Editar</a>
+                                {% endif %}
+
+                                {% if user.nivel_acesso == 'admin' or user.nivel_acesso == 'diretor' or user.nivel_acesso == 'gerente' %}
+                                 
+                                <a name="" id="" class="btn btn-primary" href="{% url 'Encaminhar'  documento.id %}" role="button"> 📨</a>
+
+                                {% endif %}
+
+
+                            </td>
+
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+   <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Seleciona o campo de pesquisa e as linhas da tabela
+            const searchInput = document.getElementById('table-search-input');
+            const tableRows = document.querySelectorAll('#documents-table-body tr');
+
+            // Adiciona um "ouvinte" para o evento de digitação
+            searchInput.addEventListener('keyup', function(event) {
+                const searchTerm = event.target.value.toLowerCase();
+
+                // Para cada linha da tabela
+                tableRows.forEach(row => {
+                    // Pega todo o texto da linha e converte para minúsculas
+                    const rowText = row.textContent.toLowerCase();
+
+                    // Verifica se o texto da linha inclui o termo pesquisado
+                    if (rowText.includes(searchTerm)) {
+                        // Se incluir, mostra a linha
+                        row.style.display = ""; // "" reverte para o padrão (table-row)
+                    } else {
+                        // Se não incluir, esconde a linha
+                        row.style.display = "none";
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
+      

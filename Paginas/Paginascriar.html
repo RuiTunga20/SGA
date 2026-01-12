@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGA - Gestão de Arquivos</title>
+<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* -- NOVA PALETA DE CORES: Inspirada no SEPE.GOV.AO -- */
+        :root {
+            --primary-orange: red;
+            --text-grey: #5a5a5a;
+            --text-grey-dark: #333333;
+            --primary-red: #c8102e; /* Mantido para o formulário */
+            --accent-gold: #daa520; /* Mantido para o formulário */
+            --bg-primary: #f4f4f4;
+            --bg-secondary: #ffffff;
+            --border: #cccccc;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--bg-primary);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* --- 1. NOVO CABEÇALHO ESTILO SEPE.GOV.AO --- */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 4px solid var(--primary-orange);
+            padding: 1rem 2rem;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--text-grey);
+        }
+
+        .logo .orange-text {
+            color: var(--primary-orange);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .main-nav ul {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            list-style: none;
+        }
+
+        .main-nav a {
+            text-decoration: none;
+            color: var(--text-grey);
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: color 0.2s ease;
+        }
+
+        .main-nav a:hover {
+            color: var(--primary-orange);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn-fazenda {
+            background: var(--primary-orange);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: opacity 0.2s ease;
+        }
+
+        .btn-fazenda:hover {
+            opacity: 0.9;
+        }
+
+        .social-icons a, .menu-icons a {
+            color: var(--text-grey);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+        .social-icons svg, .menu-icons svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Ocultar o hamburger em desktop por padrão, já que os links estão visíveis */
+        .hamburger-menu {
+             display: none;
+        }
+
+
+        /* --- ESTILOS DO FORMULÁRIO (INALTERADOS) --- */
+        .form-container {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 3px; padding: 2rem; box-shadow: var(--shadow);
+            margin-top: 2rem;
+        }
+        .form-container h3 {
+            margin-bottom: 1.5rem; color: var(--primary-red); font-size: 1.25rem;
+            border-bottom: 1px solid #eee; padding-bottom: 1rem;
+        }
+        .document-form { display: flex; flex-direction: column; gap: 1.5rem; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .form-row.full-width { grid-template-columns: 1fr; }
+        .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .form-label { font-weight: bold; color: var(--text-black); font-size: 0.9rem; }
+        .form-input, .form-textarea, .form-select {
+            padding: 0.75rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 3px; color: var(--text-black); font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none; border-color: var(--accent-gold);
+            box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
+        }
+        .form-textarea { resize: vertical; min-height: 100px; font-family: inherit; }
+        .form-help { font-size: 0.8rem; color: var(--text-secondary); }
+        .form-actions { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem; padding-top: 1.5rem; border-top: 1px solid #eee; }
+        .btn { padding: 0.75rem 1.5rem; border-radius: 3px; border: 1px solid transparent; font-weight: bold; cursor: pointer; transition: background-color 0.2s ease; text-decoration: none; font-size: 0.9rem; }
+        .btn.btn-primary { background: var(--primary-red); color: white; border-color: var(--primary-red); }
+        .btn.btn-primary:hover { background: var(--primary-red-dark); border-color: var(--primary-red-dark); }
+        .btn.btn-secondary { background: #e9e9e9; color: var(--text-black); border: 1px solid var(--border); }
+        .btn.btn-secondary:hover { background: #dcdcdc; }
+        .current-file a { color: var(--primary-red); }
+
+        /* --- 2. RESPONSIVIDADE DO NOVO CABEÇALHO --- */
+        @media (max-width: 992px) {
+            .header-content {
+                flex-wrap: wrap; /* Permite que os itens quebrem linha */
+                justify-content: space-between;
+            }
+            .main-nav {
+                display: none; /* Esconde a navegação principal em mobile */
+            }
+            .social-icons {
+                display: none; /* Esconde ícones sociais em mobile para simplificar */
+            }
+            .hamburger-menu {
+                display: block; /* Mostra o ícone de hamburger */
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+</style>
+</head>
+<body>
+    {% include "menu.html" %}
+
+    <div class="container">
+        <div class="form-container">
+            <h3>{% if form.instance.pk %}Editar Documento{% else %}Novo Documento{% endif %}</h3>
+            <form class="document-form" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="id_tipo_documento" class="form-label">Tipo de Documento</label>
+                        {{ form.tipo_documento }}
+                    </div>
+                    <div class="form-group">
+                        <label for="id_tags" class="form-label">Referência</label>
+                        {{ form.referencia }}
+                        <div class="form-help">Tags separadas por vírgula para facilitar busca</div>
+                    </div>
+
+                </div>
+                <div class="form-row">
+                     <div class="form-group">
+                        <label for="id_prioridade" class="form-label">Origem</label>
+                        {{ form.origem }}
+                    </div>
+                    <div class="form-group">
+                        <label for="id_titulo" class="form-label">Assunto</label>
+                        {{ form.titulo }}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="id_tipo_documento" class="form-label">Remetente</label>
+                        {{ form.Utente }}
+                    </div>
+                    <div class="form-group">
+                        <label for="id_prioridade" class="form-label">Telefone</label>
+                        {{ form.Telefone }}
+                    </div>
+                    <div class="form-group">
+                        <label for="id_prioridade" class="form-label">Email</label>
+                        {{ form.Email }}
+                    </div>
+                     <div class="form-group">
+                        <label for="id_prioridade" class="form-label">Grau de Prioridade</label>
+                        {{ form.prioridade }}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="id_arquivo" class="form-label">Arquivo Principal</label>
+                        {{ form.arquivo }}{% if form.instance.arquivo %}
+                        <div class="current-file">
+                            <small>Arquivo atual: <a href="{{ form.instance.arquivo.url }}" target="_blank">{{ form.instance.arquivo.name }}</a>
+                            </small></div>{% endif %}</div><div class="form-group"><label for="id_arquivo_digitalizado" class="form-label">Arquivo Digitalizado</label>
+                                {{ form.arquivo_digitalizado }}{% if form.instance.arquivo_digitalizado %}<div class="current-file"><small>Arquivo atual: <a href="{{ form.instance.arquivo_digitalizado.url }}" target="_blank">{{ form.instance.arquivo_digitalizado.name }}</a></small></div>{% endif %}
+                            </div>
+                </div>
+                <div class="form-row full-width">
+                    <div class="form-group">
+                        <label for="id_observacoes" class="form-label">Niveis de Acessos</label>
+                        {{ form.nivels }}
+                    </div>
+                </div>
+                <div class="form-row full-width">
+                    <div class="form-group">
+                        <label for="id_tags" class="form-label">Armarios</label>
+                        {{ form.tags }}
+                        <div class="form-help">O numero do Armario pasta  Armario-1/doc-335</div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Atualizar Documento{% else %}Salvar Documento{% endif %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+      // Adiciona as classes CSS aos campos gerados pelo Django
+      document.addEventListener('DOMContentLoaded', function() {
+          document.querySelectorAll('input:not([type="file"]), textarea, select').forEach(el => {
+              if (el.tagName === 'TEXTAREA') { el.classList.add('form-textarea'); }
+              else if (el.tagName === 'SELECT') { el.classList.add('form-select'); }
+              else { el.classList.add('form-input'); }
+          });
+      });
+    </script>
+
+    <!-- Select2 CSS e JS para autocomplete/filtro nos selects -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <style>
+        /* Estilos customizados para Select2 */
+        .select2-container--default .select2-selection--single {
+            height: 42px;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 24px;
+            color: var(--text-grey-dark);
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
+        }
+        .select2-dropdown {
+            border: 1px solid var(--border);
+            border-radius: 3px;
+        }
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 0.5rem;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: var(--accent-gold);
+        }
+        .select2-container {
+            width: 100% !important;
+        }
+    </style>
+    
+    <script>
+        $(document).ready(function() {
+            // Ativa Select2 em todos os selects com placeholder de busca
+            $('select').select2({
+                placeholder: 'Pesquisar...',
+                allowClear: true,
+                language: {
+                    noResults: function() {
+                        return "Nenhum resultado encontrado";
+                    },
+                    searching: function() {
+                        return "Pesquisando...";
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

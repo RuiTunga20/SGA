@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard do Departamento - SGA</title>
+    <style>
+        /* Estilos base da sua aplicação (reutilizados) */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary-red: #c8102e; --bg-primary: #f4f4f4; --bg-secondary: #ffffff;
+            --border: #e2e8f0; --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+            --info-blue: #3b82f6; --warning-yellow: #f59e0b; --success-green: #16a34a;
+            --secondary-grey: #6b7280; --text-dark: #1f2937;
+        }
+        body { font-family: Arial, Helvetica, sans-serif; background: var(--bg-primary); color: #333; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        
+        /* Estilos específicos do Dashboard */
+        .dashboard-header {
+            margin-bottom: 2rem;
+        }
+        .dashboard-header h2 {
+            font-size: 1.8rem;
+            color: var(--text-dark);
+        }
+        .dashboard-header .text-muted {
+            font-size: 1rem;
+            color: var(--secondary-grey);
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        .stat-card {
+            background-color: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            text-decoration: none;
+            color: var(--text-dark);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .stat-card .card-title {
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--secondary-grey);
+            margin-bottom: 0.5rem;
+        }
+        .stat-card .card-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .pendentes { color: var(--warning-yellow); }
+        .encaminhados { color: var(--info-blue); }
+        .registados { color: var(--success-green); }
+        .total { color: var(--text-dark); }
+        .mortos { color: var(--primary-red); }
+    </style>
+</head>
+<body>
+    {% include "menu.html" %}
+
+    <div class="container">
+        <div class="dashboard-header">
+            <h2>Dashboard do Departamento</h2>
+            <p class="text-muted">Estatísticas de hoje para: <strong>{{ departamento_nome }}</strong></p>
+        </div>
+
+        <div class="dashboard-grid">
+            <a href="{% url 'pendencias' %}?status=em_analise" class="stat-card">
+                <div class="card-title">PENDENTES</div>
+                <div class="card-value pendentes">{{ documentos_pendentes }}</div>
+            </a>
+
+            <a href="{% url 'listar_documentos' %}" class="stat-card">
+                <div class="card-title">ENCAMINHADOS HOJE</div>
+                <div class="card-value encaminhados">{{ documentos_encaminhados_hoje }}</div>
+            </a>
+
+            <a href="{% url 'listar_documentos' %}" class="stat-card">
+                <div class="card-title">REGISTADOS HOJE</div>
+                <div class="card-value registados">{{ documentos_registados_hoje }}</div>
+            </a>
+
+            <a href="{% url 'listar_documentos' %}" class="stat-card">
+                <div class="card-title">TOTAL NO DEPARTAMENTO</div>
+                <div class="card-value total">{{ total_documentos_no_departamento }}</div>
+            </a>
+
+            <a href="{% url 'arquivo_morto' %}" class="stat-card">
+                <div class="card-title">DOCUMENTOS MORTOS</div>
+                <div class="card-value mortos">{{ documentos_mortos }}</div>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

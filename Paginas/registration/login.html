@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGA - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* PALETA DE CORES E ESTILO CONSISTENTE COM A APLICAÇÃO */
+        :root {
+            --primary-red: #c8102e;
+            --primary-red-dark: #a20c24;
+            --accent-gold: #daa520;
+            --text-black: #333333;
+            --text-secondary: #666666;
+            --bg-primary: #f4f4f4;
+            --bg-secondary: #ffffff;
+            --border: #cccccc;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --error: #ef4444;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        /* CARD DE LOGIN SÓBRIO E PROFISSIONAL */
+        .login-container {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem;
+            border-top: 4px solid var(--primary-red);
+        }
+
+        /* LOGO E TÍTULO */
+        .logo-section {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-black);
+            margin-bottom: 0.5rem;
+        }
+        .logo span {
+            color: var(--primary-red);
+        }
+        .welcome-text {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* FORMULÁRIO */
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-label {
+            font-weight: bold;
+            color: var(--text-black);
+            font-size: 0.9rem;
+        }
+
+        .form-input {
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            color: var(--text-black);
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
+        }
+
+        .password-input-wrapper {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        /* BOTÃO DE LOGIN */
+        .login-btn {
+            background: var(--primary-red);
+            color: white;
+            border: none;
+            padding: 0.85rem;
+            border-radius: 3px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-top: 1rem;
+        }
+
+        .login-btn:hover {
+            background: var(--primary-red-dark);
+        }
+
+        /* MENSAGEM DE ERRO (CASO EXISTA NO CONTEXTO DO DJANGO) */
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            padding: 0.75rem 1rem;
+            border-radius: 3px;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <div class="logo-section">
+            <div class="logo">sga<span>.gov.ao</span></div>
+            <p class="welcome-text">Sistema de Gestão de Arquivos</p>
+        </div>
+
+        {% if form.errors %}
+            <div class="error-message">
+                Nome de utilizador ou senha inválidos. Tente novamente.
+            </div>
+        {% endif %}
+
+        <form class="login-form" method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="username" class="form-label">Nome de Usuário</label>
+                <input type="text" class="form-input" id="username" name="username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Senha</label>
+                <div class="password-input-wrapper">
+                    <input type="password" class="form-input" id="password" name="password" required>
+                    <button type="button" class="password-toggle" id="passwordToggle" aria-label="Mostrar/Ocultar senha">
+                        👁️
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="login-btn">Entrar</button>
+        </form>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const passwordInput = document.getElementById('password');
+        const passwordToggle = document.getElementById('passwordToggle');
+
+        if (passwordToggle && passwordInput) {
+            passwordToggle.addEventListener('click', function() {
+                // Alterna o tipo do input entre 'password' e 'text'
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+
+                // Alterna o ícone
+                this.textContent = type === 'password' ? '👁️' : '🙈';
+            });
+        }
+    });
+</script>
+</body>
+</html>

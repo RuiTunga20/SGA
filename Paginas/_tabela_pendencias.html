@@ -1,0 +1,52 @@
+<table class="documents-table">
+    <thead>
+        <tr>
+            <th>Título do Documento</th>
+            <th>Enviado Por</th> <th>Data de Envio</th>
+            <th style="width: 150px; text-align: center;">Ações</th>
+        </tr>
+    </thead>
+    <tbody id="documents-table-body">
+        {% for mov in movimentacoes_pendentes %}
+        <tr>
+            <td>
+                {{ mov.documento.titulo }}
+                {% if mov.documento.urgente %}
+                    <span class="badge-urgente">⚠️ URGENTE</span>
+                {% endif %}
+                <br>
+                <small style="color: #888;">Ref: {{ mov.documento.numero_referencia }}</small>
+            </td>
+
+            <td>
+                <strong>{{ mov.usuario.get_full_name|default:mov.usuario.username }}</strong>
+                <br>
+
+                <small style="color: #555;">
+                    {% if mov.seccao_origem %}
+                        (Secção: {{ mov.seccao_origem.nome }})
+                    {% else %}
+                        (Dep: {{ mov.departamento_origem.nome }})
+                    {% endif %}
+                </small>
+            </td>
+
+            <td>
+                {{ mov.data_movimentacao|date:"d/m/Y H:i" }}
+            </td>
+
+            <td style="text-align: center;">
+                <a href="{% url 'detalhe_documento' mov.documento.id %}" class="btn-link">
+                    Ver Detalhes
+                </a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4" style="text-align: center; padding: 2rem; color: #777;">
+                Nenhuma pendência de recebimento encontrada.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

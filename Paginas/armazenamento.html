@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGA - Registar Armazenamento</title>
+<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* -- PALETA DE CORES -- */
+        :root {
+            --primary-orange: red;
+            --text-grey: #5a5a5a;
+            --text-grey-dark: #333333;
+            --primary-red: #c8102e;
+            --accent-gold: #daa520;
+            --bg-primary: #f4f4f4;
+            --bg-secondary: #ffffff;
+            --border: #cccccc;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+            --success: #28a745;
+            --info: #17a2b8;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--bg-primary);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* --- ESTILOS DO FORMULÁRIO --- */
+        .form-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin-top: 2rem;
+        }
+
+        .form-container h3 {
+            margin-bottom: 1.5rem;
+            color: var(--primary-red);
+            font-size: 1.25rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1rem;
+        }
+
+        .document-info {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .document-info h4 {
+            color: var(--text-grey-dark);
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .document-info p {
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+            color: var(--text-grey);
+        }
+
+        .document-info .protocolo {
+            font-weight: bold;
+            color: var(--primary-red);
+        }
+
+        .current-location {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .current-location h5 {
+            color: #856404;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .current-location p {
+            margin: 0;
+            color: #856404;
+            font-weight: bold;
+        }
+
+        .document-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 0.95rem;
+            color: var(--text-grey-dark);
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--accent-gold);
+        }
+
+        .form-section {
+            background: #fafafa;
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .form-row.full-width {
+            grid-template-columns: 1fr;
+        }
+
+        .form-row.three-cols {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-label {
+            font-weight: bold;
+            color: var(--text-grey-dark);
+            font-size: 0.9rem;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            color: var(--text-grey-dark);
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .form-help {
+            font-size: 0.8rem;
+            color: var(--text-grey);
+        }
+
+        .or-divider {
+            text-align: center;
+            margin: 1rem 0;
+            color: var(--text-grey);
+            font-size: 0.85rem;
+            position: relative;
+        }
+
+        .or-divider::before,
+        .or-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .or-divider::before { left: 0; }
+        .or-divider::after { right: 0; }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #eee;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 3px;
+            border: 1px solid transparent;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .btn.btn-primary {
+            background: var(--primary-red);
+            color: white;
+            border-color: var(--primary-red);
+        }
+
+        .btn.btn-primary:hover {
+            background: #a00d24;
+            border-color: #a00d24;
+        }
+
+        .btn.btn-secondary {
+            background: #e9e9e9;
+            color: var(--text-grey-dark);
+            border: 1px solid var(--border);
+        }
+
+        .btn.btn-secondary:hover {
+            background: #dcdcdc;
+        }
+
+        /* Mensagens de alerta */
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        /* --- RESPONSIVIDADE --- */
+        @media (max-width: 992px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .form-row.three-cols {
+                grid-template-columns: 1fr;
+            }
+        }
+</style>
+</head>
+<body>
+    {% include "menu.html" %}
+
+    <div class="container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="form-container">
+            <h3>📁 Registar Armazenamento de Documento</h3>
+
+            <!-- Informações do Documento -->
+            <div class="document-info">
+                <h4>Documento</h4>
+                <p><span class="protocolo">{{ documento.numero_protocolo }}</span> - {{ documento.titulo }}</p>
+                <p><strong>Tipo:</strong> {{ documento.tipo_documento }}</p>
+                <p><strong>Remetente:</strong> {{ documento.Utente }}</p>
+                <p><strong>Status:</strong> {{ documento.get_status_display }}</p>
+            </div>
+
+            {% if armazenamento_existente %}
+            <div class="current-location">
+                <h5>⚠️ Localização Atual</h5>
+                <p>{{ armazenamento_existente.localizacao_completa }}</p>
+                <small>Registrado por {{ armazenamento_existente.registrado_por.username }} em {{ armazenamento_existente.data_armazenamento|date:"d/m/Y H:i" }}</small>
+            </div>
+            {% endif %}
+
+            <form class="document-form" method="post">
+                {% csrf_token %}
+
+                <!-- Opção 1: Local Cadastrado -->
+                <div class="form-section">
+                    <div class="section-title">📍 Local Cadastrado no Sistema</div>
+                    <div class="form-row full-width">
+                        <div class="form-group">
+                            <label for="id_local_armazenamento" class="form-label">Selecionar Local</label>
+                            {{ form.local_armazenamento }}
+                            <div class="form-help">Escolha um local previamente cadastrado no sistema</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="or-divider">OU</div>
+
+                <!-- Opção 2: Localização Manual -->
+                <div class="form-section">
+                    <div class="section-title">✏️ Localização Manual</div>
+                    <div class="form-help" style="margin-bottom: 1rem;">
+                        Preencha os campos abaixo se o local não está cadastrado no sistema
+                    </div>
+
+                    <div class="form-row three-cols">
+                        <div class="form-group">
+                            <label for="id_estante" class="form-label">Estante</label>
+                            {{ form.estante }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_prateleira" class="form-label">Prateleira</label>
+                            {{ form.prateleira }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_dossie" class="form-label">Dossiê</label>
+                            {{ form.dossie }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="id_caixa" class="form-label">Caixa (opcional)</label>
+                            {{ form.caixa }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_posicao" class="form-label">Posição (opcional)</label>
+                            {{ form.posicao }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Observações -->
+                <div class="form-row full-width">
+                    <div class="form-group">
+                        <label for="id_observacoes" class="form-label">Observações</label>
+                        {{ form.observacoes }}
+                        <div class="form-help">Informações adicionais sobre o armazenamento</div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'detalhe_documento' documento_id=documento.id %}" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">💾 Registar Armazenamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+      // Adiciona as classes CSS aos campos gerados pelo Django
+      document.addEventListener('DOMContentLoaded', function() {
+          document.querySelectorAll('input:not([type="file"]), textarea, select').forEach(el => {
+              if (el.tagName === 'TEXTAREA') { el.classList.add('form-textarea'); }
+              else if (el.tagName === 'SELECT') { el.classList.add('form-select'); }
+              else { el.classList.add('form-input'); }
+          });
+      });
+    </script>
+
+    <!-- Select2 CSS e JS para autocomplete/filtro nos selects -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <style>
+        /* Estilos customizados para Select2 */
+        .select2-container--default .select2-selection--single {
+            height: 42px;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 24px;
+            color: var(--text-grey-dark);
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
+        }
+        .select2-dropdown {
+            border: 1px solid var(--border);
+            border-radius: 3px;
+        }
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 0.5rem;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: var(--accent-gold);
+        }
+        .select2-container {
+            width: 100% !important;
+        }
+    </style>
+    
+    <script>
+        $(document).ready(function() {
+            // Ativa Select2 em todos os selects com placeholder de busca
+            $('select').select2({
+                placeholder: 'Pesquisar...',
+                allowClear: true,
+                language: {
+                    noResults: function() {
+                        return "Nenhum resultado encontrado";
+                    },
+                    searching: function() {
+                        return "Pesquisando...";
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
