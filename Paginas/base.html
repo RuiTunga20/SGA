@@ -378,19 +378,64 @@
                 </div>
             </div>
 
-            <div class="dropdown">
-                <button class="btn btn-link dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="bi bi-person-circle fs-5"></i>
-                    {{ user.get_full_name|default:user.username }}
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><span class="dropdown-item-text text-muted">{{ user.departamento.nome }}</span></li>
-                    <li><span class="dropdown-item-text text-muted">{{ user.get_nivel_acesso_display }}</span></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{% url 'documentos:logout' %}">
-                        <i class="bi bi-box-arrow-right"></i> Sair
-                    </a></li>
-                </ul>
+            <div class="d-flex align-items-center gap-3">
+                <!-- Notification Bell -->
+                <div class="dropdown" id="notificationDropdown">
+                    <button class="btn btn-link position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="notificationBell">
+                        <i class="bi bi-bell fs-5"></i>
+                        {% if unread_notifications_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notificationCount">
+                            {{ unread_notifications_count }}
+                        </span>
+                        {% else %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notificationCount" style="display: none;">
+                            0
+                        </span>
+                        {% endif %}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" style="width: 350px; max-height: 400px; overflow-y: auto;" id="notificationList">
+                        <li class="dropdown-header d-flex justify-content-between align-items-center">
+                            <span><strong>Notificações</strong></span>
+                            <button class="btn btn-sm btn-link p-0" onclick="marcarTodasLidas()">Marcar todas como lidas</button>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% if recent_notifications %}
+                            {% for notif in recent_notifications %}
+                            <li>
+                                <a class="dropdown-item py-2 {% if not notif.lida %}bg-light{% endif %}" href="{{ notif.link|default:'#' }}" style="white-space: normal;">
+                                    <div class="d-flex align-items-start">
+                                        <i class="bi bi-envelope{% if notif.lida %}-open{% endif %}-fill text-primary me-2 mt-1"></i>
+                                        <div>
+                                            <div class="small">{{ notif.mensagem }}</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">{{ notif.data_criacao|timesince }} atrás</div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </li>
+                            {% endfor %}
+                        {% else %}
+                        <li class="text-center text-muted py-3" id="noNotifications">
+                            <i class="bi bi-bell-slash"></i> Nenhuma notificação
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- User Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-link dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle fs-5"></i>
+                        {{ user.get_full_name|default:user.username }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><span class="dropdown-item-text text-muted">{{ user.departamento.nome }}</span></li>
+                        <li><span class="dropdown-item-text text-muted">{{ user.get_nivel_acesso_display }}</span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                            <i class="bi bi-box-arrow-right"></i> Sair
+                        </a></li>
+                    </ul>
+                </div>
             </div>
         </nav>
 
@@ -479,6 +524,323 @@
                 }
             });
         }, 5000);
+
+        // ============================================
+        // WEBSOCKET PARA NOTIFICAÇÕES EM TEMPO REAL
+        // ============================================
+        
+        let notificationSocket = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        const notificationCountEl = document.getElementById('notificationCount');
+        const notificationListEl = document.getElementById('notificationList');
+        const noNotificationsEl = document.getElementById('noNotifications');
+        
+        function connectWebSocket() {
+            // Determinar protocolo (ws ou wss)
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/notificacoes/`;
+            
+            console.log('Conectando ao WebSocket:', wsUrl);
+            
+            notificationSocket = new WebSocket(wsUrl);
+            
+            notificationSocket.onopen = function(e) {
+                console.log('WebSocket conectado!');
+                reconnectAttempts = 0;
+                
+                // Solicitar contagem inicial
+                notificationSocket.send(JSON.stringify({action: 'get_count'}));
+            };
+            
+            notificationSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                console.log('Mensagem WebSocket:', data);
+                
+                if (data.type === 'notification_count') {
+                    updateNotificationBadge(data.count);
+                }
+                else if (data.type === 'new_notification') {
+                    showNewNotification(data.message, data.link);
+                    updateNotificationBadge(data.count || parseInt(notificationCountEl.textContent) + 1);
+                    
+                    // Tocar som de notificação (opcional)
+                    playNotificationSound();
+                    
+                    // Mostrar notificação do navegador se permitido
+                    showBrowserNotification(data.message);
+                }
+                else if (data.type === 'notifications_marked_read') {
+                    updateNotificationBadge(0);
+                    clearNotificationList();
+                }
+            };
+            
+            notificationSocket.onclose = function(e) {
+                console.log('WebSocket desconectado. Código:', e.code);
+                
+                // Tentar reconectar
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+                    console.log(`Tentando reconectar em ${delay/1000}s... (tentativa ${reconnectAttempts})`);
+                    setTimeout(connectWebSocket, delay);
+                }
+            };
+            
+            notificationSocket.onerror = function(e) {
+                console.error('Erro no WebSocket:', e);
+            };
+        }
+        
+        function updateNotificationBadge(count) {
+            if (count > 0) {
+                notificationCountEl.textContent = count > 99 ? '99+' : count;
+                notificationCountEl.style.display = 'inline';
+            } else {
+                notificationCountEl.style.display = 'none';
+            }
+        }
+        
+        function showNewNotification(message, link) {
+            console.log('showNewNotification chamado:', message, link);
+            
+            const notifList = document.getElementById('notificationList');
+            if (!notifList) {
+                console.error('notificationList não encontrado!');
+                return;
+            }
+            
+            // Esconder mensagem "nenhuma notificação"
+            const noNotif = document.getElementById('noNotifications');
+            if (noNotif) {
+                noNotif.style.display = 'none';
+            }
+            
+            // Criar item de notificação com destaque
+            const li = document.createElement('li');
+            li.className = 'notification-item-new notification-item-ajax';
+            li.innerHTML = `
+                <a class="dropdown-item py-2 bg-warning bg-opacity-25" href="${link || '#'}" style="white-space: normal; border-left: 3px solid #dc3545;">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-envelope-fill text-danger me-2 mt-1"></i>
+                        <div>
+                            <div class="small fw-bold">${message}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">Agora mesmo</div>
+                        </div>
+                    </div>
+                </a>
+            `;
+            
+            // Encontrar todos os li do dropdown
+            const allLis = notifList.querySelectorAll('li');
+            let insertPoint = null;
+            
+            // Encontrar o li que contém o hr (divider)
+            for (let item of allLis) {
+                if (item.querySelector('.dropdown-divider') || item.querySelector('hr')) {
+                    insertPoint = item;
+                    break;
+                }
+            }
+            
+            // Inserir logo após o divider
+            if (insertPoint && insertPoint.nextSibling) {
+                notifList.insertBefore(li, insertPoint.nextSibling);
+            } else if (insertPoint) {
+                insertPoint.after(li);
+            } else {
+                // Fallback: adicionar no final
+                notifList.appendChild(li);
+            }
+            
+            // Animação de destaque
+            li.style.transition = 'background-color 0.5s';
+            setTimeout(() => {
+                li.querySelector('a').classList.remove('bg-warning', 'bg-opacity-25');
+                li.querySelector('a').classList.add('bg-light');
+            }, 3000);
+            
+            console.log('Notificação adicionada ao dropdown');
+        }
+        
+        function clearNotificationList() {
+            // Remover todos os itens exceto header e divider
+            const items = notificationListEl.querySelectorAll('li:not(.dropdown-header):not(:has(.dropdown-divider))');
+            items.forEach(item => {
+                if (!item.querySelector('.dropdown-divider')) {
+                    item.remove();
+                }
+            });
+            
+            if (noNotificationsEl) {
+                noNotificationsEl.style.display = 'block';
+            }
+        }
+        
+        function marcarTodasLidas() {
+            if (notificationSocket && notificationSocket.readyState === WebSocket.OPEN) {
+                notificationSocket.send(JSON.stringify({action: 'mark_read'}));
+            }
+            
+            // Também fazer chamada HTTP como fallback
+            fetch('{% url "marcar_notificacoes_lidas" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    updateNotificationBadge(0);
+                    clearNotificationList();
+                }
+            });
+        }
+        
+        function playNotificationSound() {
+            // Som opcional de notificação
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...');
+                audio.volume = 0.3;
+                audio.play().catch(() => {}); // Ignorar erros se autoplay bloqueado
+            } catch (e) {}
+        }
+        
+        function showBrowserNotification(message) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('SGD - Novo Documento', {
+                    body: message,
+                    icon: '/static/img/logo.png'
+                });
+            }
+        }
+        
+        // Solicitar permissão para notificações do navegador
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+        
+        // Iniciar conexão WebSocket e polling quando a página carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if user.is_authenticated %}
+            
+            // Tentar conexão WebSocket
+            try {
+                connectWebSocket();
+            } catch (err) {
+                console.log('Erro ao conectar WebSocket:', err);
+            }
+            
+            // Quando clicar no sino, recarregar notificações via AJAX
+            const bellBtn = document.getElementById('notificationBell');
+            if (bellBtn) {
+                console.log('Elemento do sino (bell) encontrado:', bellBtn);
+                bellBtn.addEventListener('click', function() {
+                    console.log('Sino clicado - carregando notificações...');
+                    loadNotificationsAjax();
+                });
+            }
+            
+            // Carregar contagem inicial
+            console.log('A verificar notificações...');
+            loadNotificationsAjax();
+            
+            // ============================================
+            // FALLBACK: Polling apenas se WebSocket falhar
+            // ============================================
+            setTimeout(function() {
+                if (!notificationSocket || notificationSocket.readyState !== WebSocket.OPEN) {
+                    console.log('WebSocket não disponível - activando polling de fallback (60s)');
+                    setInterval(function() {
+                        console.log('Polling de fallback - verificando notificações...');
+                        loadNotificationsAjax();
+                    }, 60000); // 60 segundos (fallback)
+                } else {
+                    console.log('WebSocket activo - polling desactivado');
+                }
+            }, 5000);
+            
+            {% endif %}
+        });
+        
+        function loadNotificationsAjax() {
+            const url = '{% url "verificar_notificacoes" %}?_t=' + Date.now();
+            
+            fetch(url, { cache: 'no-store' })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Contagem de notificações não lidas:', data.count);
+                    
+                    // 1. Atualizar o badge
+                    const badge = document.getElementById('notificationCount');
+                    if (badge) {
+                        console.log('Elemento do balão (badge) existente:', badge);
+                        if (data.count > 0) {
+                            badge.textContent = data.count > 99 ? '99+' : data.count;
+                            badge.style.display = 'inline';
+                            console.log('A atualizar o texto do balão para:', data.count);
+                        } else {
+                            badge.style.display = 'none';
+                            console.log('Contagem é 0. A esconder o balão.');
+                        }
+                    }
+                    
+                    // 2. Atualizar o dropdown
+                    const dropdown = document.getElementById('notificationList');
+                    const noNotifMsg = document.getElementById('noNotifications');
+                    
+                    if (!dropdown) {
+                        console.error('Dropdown não encontrado!');
+                        return;
+                    }
+                    
+                    // 3. Se há notificações, popular o dropdown
+                    if (data.count > 0 && data.notificacoes && data.notificacoes.length > 0) {
+                        console.log('Número de notificações a mostrar:', data.notificacoes.length);
+                        
+                        // Esconder "nenhuma notificação"
+                        if (noNotifMsg) noNotifMsg.style.display = 'none';
+                        
+                        // Limpar notificações antigas (manter header e divider)
+                        const existingNotifs = dropdown.querySelectorAll('.notification-item-ajax');
+                        existingNotifs.forEach(el => el.remove());
+                        
+                        // Construir HTML das notificações
+                        let notifHtml = '';
+                        data.notificacoes.forEach(notif => {
+                            notifHtml += `
+                                <li class="notification-item-ajax">
+                                    <a class="dropdown-item py-2 bg-light" href="${notif.link || '#'}" style="white-space: normal;">
+                                        <div class="d-flex align-items-start">
+                                            <i class="bi bi-envelope-fill text-primary me-2 mt-1"></i>
+                                            <div>
+                                                <div class="small">${notif.mensagem}</div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">${notif.data || 'Agora'}</div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </li>
+                            `;
+                        });
+                        
+                        // Inserir após o divider
+                        const dividerLi = dropdown.querySelector('li:nth-child(2)'); // Header é 1, Divider é 2
+                        if (dividerLi) {
+                            dividerLi.insertAdjacentHTML('afterend', notifHtml);
+                            console.log('Notificações inseridas no dropdown');
+                        } else {
+                            dropdown.insertAdjacentHTML('beforeend', notifHtml);
+                        }
+                    } else {
+                        // Sem notificações
+                        const existingNotifs = dropdown.querySelectorAll('.notification-item-ajax');
+                        existingNotifs.forEach(el => el.remove());
+                        if (noNotifMsg) noNotifMsg.style.display = 'block';
+                    }
+                })
+                .catch(err => console.error('Erro ao carregar notificações:', err));
+        }
     </script>
 
     {% block extra_js %}{% endblock %}

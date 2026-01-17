@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.utils import timezone
 
 # Create your views here.
 # views.py
@@ -24,9 +25,9 @@ def dashboard(request):
     user = request.user
     hoje = timezone.now().date()
     departamento_usuario = user.departamento
-    print(user.seccao.Departamento,departamento_usuario)
+    print(user.seccao.departamento,departamento_usuario)
     if not departamento_usuario :
-        departamento_usuario=user.seccao.Departamento
+        departamento_usuario=user.seccao.departamento
     # Se o utilizador não tiver um departamento, redireciona ou mostra erro
     if not departamento_usuario :
 

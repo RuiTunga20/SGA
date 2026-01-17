@@ -54,4 +54,9 @@ path('notificacoes/marcar-como-lidas/', views.marcar_notificacoes_como_lidas, na
     path('armazenamentos/', views.listar_armazenamentos, name='listar_armazenamentos'),
     path('documentos/<int:documento_id>/armazenamentos/', views.listar_armazenamentos, name='historico_armazenamento'),
 
-]+static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+
+# Servir arquivos media e static em modo de desenvolvimento
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

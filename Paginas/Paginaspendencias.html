@@ -83,25 +83,57 @@
             }
         }
 
+        // Função para atualizar tabela - disponível globalmente
+        function atualizarTabelaPendencias() {
+            const pendenciasContainer = document.getElementById('pendencias-table-container');
+            if (!pendenciasContainer) {
+                console.warn('[Pendências] Container não encontrado');
+                return;
+            }
+            
+            console.log('[Pendências] A atualizar tabela...');
+            fetch("{% url 'lista_pendencias_parcial' %}")
+                .then(response => response.text())
+                .then(html => {
+                    pendenciasContainer.innerHTML = html;
+                    aplicarFiltroDeBusca();
+                    console.log('[Pendências] ✅ Tabela atualizada com sucesso');
+                })
+                .catch(error => console.error("[Pendências] ❌ Erro ao atualizar a tabela:", error));
+        }
+
+        // ==========================================================
+        // WEBSOCKET: Escutar eventos do menu.html IMEDIATAMENTE
+        // Registado fora do DOMContentLoaded para estar pronto antes
+        // ==========================================================
+        window.addEventListener('pendenciasAtualizadas', function(event) {
+            console.log('[Pendências] 📨 Evento WebSocket recebido:', event.detail);
+            atualizarTabelaPendencias();
+        });
+        console.log('[Pendências] Listener WebSocket registado. A aguardar eventos...');
+
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.getElementById('table-search-input');
             if (searchInput) {
                 searchInput.addEventListener('keyup', aplicarFiltroDeBusca);
             }
 
-            const pendenciasContainer = document.getElementById('pendencias-table-container');
-
-            function atualizarTabelaPendencias() {
-                fetch("{% url 'lista_pendencias_parcial' %}")
-                    .then(response => response.text())
-                    .then(html => {
-                        pendenciasContainer.innerHTML = html;
-                        aplicarFiltroDeBusca();
-                    })
-                    .catch(error => console.error("Erro ao atualizar a tabela:", error));
-            }
-
-            setInterval(atualizarTabelaPendencias, 15000);
+            // ==========================================================
+            // FALLBACK: Polling a cada 60s caso WebSocket não funcione
+            // ==========================================================
+            let wsAtivo = false;
+            
+            // Verificar se WebSocket está conectado após 5 segundos
+            setTimeout(function() {
+                if (window.notificationSocket && window.notificationSocket.readyState === WebSocket.OPEN) {
+                    wsAtivo = true;
+                    console.log('[Pendências] ✅ WebSocket activo - sem necessidade de polling');
+                } else {
+                    console.log('[Pendências] ⚠️ WebSocket não disponível - activando polling de fallback');
+                    // Polling de fallback a cada 60 segundos
+                    setInterval(atualizarTabelaPendencias, 60000);
+                }
+            }, 5000);
         });
    </script>
 </body>

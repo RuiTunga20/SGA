@@ -1,0 +1,288 @@
+/* =============================================================================
+   RESET & VARIABLES
+   ============================================================================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-orange: red;
+    --text-grey: #5a5a5a;
+    --bg-secondary: #ffffff;
+    --border: #cccccc;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+    /* Novas cores para os alertas */
+    --alert-error-bg: #fef2f2;
+    --alert-error-border: #fca5a5;
+    --alert-error-text: #b91c1c;
+    --alert-success-bg: #f0fdf4;
+    --alert-success-border: #86efac;
+    --alert-success-text: #15803d;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f4f4;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* =============================================================================
+   MENSAGENS & ALERTAS
+   ============================================================================= */
+.messages-container {
+    padding: 0 2rem;
+    max-width: 1200px;
+    margin: 1rem auto 0 auto;
+}
+
+.alert {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* Transição para o desaparecimento suave */
+    opacity: 1;
+    transition: opacity 0.5s ease-out;
+}
+
+/* Classe para o estado de desaparecimento */
+.alert.fade-out {
+    opacity: 0;
+}
+
+.alert.alert-error {
+    color: var(--alert-error-text);
+    background-color: var(--alert-error-bg);
+    border-color: var(--alert-error-border);
+}
+
+.alert.alert-success {
+    color: var(--alert-success-text);
+    background-color: var(--alert-success-bg);
+    border-color: var(--alert-success-border);
+}
+
+.alert .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+}
+
+.alert .close-btn:hover {
+    opacity: 1;
+}
+
+/* =============================================================================
+   HEADER & NAVEGAÇÃO
+   ============================================================================= */
+.header {
+    background: var(--bg-secondary);
+    border-bottom: 4px solid var(--primary-orange);
+    padding: 1rem 2rem;
+    position: relative;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.logo-area {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.logo {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--text-grey);
+}
+
+.logo .orange-text {
+    color: var(--primary-orange);
+}
+
+.department-name {
+    font-size: 0.85rem;
+    color: #777;
+    margin-top: -5px;
+    font-weight: normal;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.main-nav ul {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    list-style: none;
+}
+
+.main-nav a {
+    text-decoration: none;
+    color: var(--text-grey);
+    font-weight: bold;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+}
+
+.main-nav a:hover {
+    color: var(--primary-orange);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.btn-header {
+    background: var(--primary-orange);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 20px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.9rem;
+    transition: opacity 0.2s ease;
+    border: none;
+}
+
+.btn-header:hover {
+    opacity: 0.9;
+}
+
+.btn-login {
+    background: transparent;
+    color: var(--primary-orange);
+    border: 2px solid var(--primary-orange);
+}
+
+.btn-login:hover {
+    background: var(--primary-orange);
+    color: white;
+    opacity: 1;
+}
+
+.hamburger-menu {
+     display: none;
+     background: none;
+     border: none;
+     cursor: pointer;
+}
+
+/* =============================================================================
+   NOTIFICAÇÕES
+   ============================================================================= */
+.notification-bell {
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 1.5rem;
+    color: var(--text-grey);
+}
+
+.notification-count {
+    position: absolute;
+    top: -5px;
+    right: -10px;
+    background-color: var(--primary-orange);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.notifications-dropdown {
+    display: none;
+    position: absolute;
+    top: 150%;
+    right: 0;
+    width: 320px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    border: 1px solid #eee;
+    z-index: 100;
+}
+
+.notifications-dropdown.show {
+    display: block;
+}
+
+.notification-item {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item.unread {
+    background-color: #f8fafc;
+}
+
+.notification-item a {
+    text-decoration: none;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+/* =============================================================================
+   RESPONSIVIDADE
+   ============================================================================= */
+@media (max-width: 992px) {
+    .main-nav {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: white;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 100;
+    }
+    .main-nav.is-open {
+        display: block;
+    }
+    .main-nav ul {
+        flex-direction: column;
+        padding: 1rem 0;
+        gap: 0;
+    }
+    .main-nav ul li {
+        width: 100%;
+    }
+    .main-nav ul li a {
+        padding: 1rem 2rem;
+        display: block;
+        width: 100%;
+    }
+    .hamburger-menu {
+        display: block;
+    }
+}

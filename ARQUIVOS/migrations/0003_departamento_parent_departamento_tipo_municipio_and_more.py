@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ARQUIVOS', '0002_alter_documento_id'),
+        ('ARQUIVOS', '0001_initial'),
     ]
 
     operations = [

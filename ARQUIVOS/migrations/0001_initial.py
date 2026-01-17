@@ -50,7 +50,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Documento',
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('numero_protocolo', models.CharField(editable=False, max_length=20, unique=True)),
                 ('titulo', models.CharField(max_length=200)),
                 ('conteudo', models.TextField()),

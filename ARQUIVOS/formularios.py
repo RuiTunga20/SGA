@@ -1,6 +1,7 @@
 # forms.py
 from django.contrib.auth.forms import UserCreationForm
 from .models import *
+from .models import StatusDocumento
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -13,7 +14,7 @@ class DocumentoForm(forms.ModelForm):
         model = Documento
         fields = [
             'titulo', 'tipo_documento', 'prioridade',
-            'arquivo', 'arquivo_digitalizado', 'tags', 'observacoes','Utente','Telefone','Email','origem','nivels','referencia',
+            'arquivo', 'arquivo_digitalizado', 'tags', 'observacoes','utente','telefone','email','origem','niveis','referencia',
         ]
         widgets = {
             'titulo': forms.TextInput(attrs={
@@ -22,25 +23,20 @@ class DocumentoForm(forms.ModelForm):
                 'maxlength': '200',
                 'required': True,
             }),
-            'Utente': forms.TextInput(attrs={
+            'utente': forms.TextInput(attrs={
                 'class': 'form-input',
                 'placeholder': 'Digite o Nome',
                 'maxlength': '200',
                 'required': True,
             }),
 
-            'Email': forms.EmailInput(attrs={
+            'email': forms.EmailInput(attrs={
                 'class': 'form-input',
                 'placeholder': 'Digite o Email',
                 'maxlength': '200',
                 'required': True,
             }),
-            'Entidade': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'Entidade',
-                'maxlength': '200',
-                'required': True,
-            }),
+
 
 
             'tipo_documento': forms.Select(attrs={'class': 'form-select'}),
@@ -115,7 +111,7 @@ class EncaminharDocumentoForm(forms.ModelForm):
 
             if hasattr(self.user, 'seccao') and self.user.seccao:
                 seccao_usuario = self.user.seccao
-                departamento_usuario = self.user.seccao.Departamento
+                departamento_usuario = self.user.seccao.departamento
             elif hasattr(self.user, 'departamento') and self.user.departamento:
                 departamento_usuario = self.user.departamento
 
@@ -129,11 +125,11 @@ class EncaminharDocumentoForm(forms.ModelForm):
 
                 # SECÇÕES: Apenas secções do SEU departamento, EXCETO a sua
                 self.fields['seccao_destino'].queryset = Seccoes.objects.filter(
-                    Departamento=departamento_usuario,
+                    departamento=departamento_usuario,
                     ativo=True
                 ).exclude(
                     id=seccao_usuario.id
-                ).select_related('Departamento').order_by('nome')
+                ).select_related('departamento').order_by('nome')
 
                 self.fields['departamento_destino'].label = "Encaminhar para o Departamento (geral)"
                 self.fields['seccao_destino'].label = "Ou para outra Secção do seu Departamento"
@@ -153,9 +149,9 @@ class EncaminharDocumentoForm(forms.ModelForm):
 
                 # SECÇÕES: Todas as secções do SEU departamento
                 self.fields['seccao_destino'].queryset = Seccoes.objects.filter(
-                    Departamento=departamento_usuario,
+                    departamento=departamento_usuario,
                     ativo=True
-                ).select_related('Departamento').order_by('nome')
+                ).select_related('departamento').order_by('nome')
 
                 self.fields[
                     'departamento_destino'].label = f"Encaminhar para Departamento (Município Tipo {tipo_municipio})"
@@ -201,7 +197,7 @@ class EncaminharDocumentoForm(forms.ModelForm):
         if self.user and dept_destino:
             # Obter o departamento e tipo do usuário
             if hasattr(self.user, 'seccao') and self.user.seccao:
-                dept_usuario = self.user.seccao.Departamento
+                dept_usuario = self.user.seccao.departamento
                 # Se está em secção, só pode encaminhar para o próprio departamento
                 if dept_destino.id != dept_usuario.id:
                     raise ValidationError(
@@ -233,11 +229,11 @@ class EncaminharDocumentoForm(forms.ModelForm):
             # Verificar se a secção pertence ao departamento do usuário
             dept_usuario = None
             if hasattr(self.user, 'seccao') and self.user.seccao:
-                dept_usuario = self.user.seccao.Departamento
+                dept_usuario = self.user.seccao.departamento
             elif hasattr(self.user, 'departamento') and self.user.departamento:
                 dept_usuario = self.user.departamento
 
-            if dept_usuario and sec_destino.Departamento.id != dept_usuario.id:
+            if dept_usuario and sec_destino.departamento.id != dept_usuario.id:
                 raise ValidationError(
                     'Você só pode encaminhar para secções do seu próprio departamento.'
                 )
@@ -251,9 +247,9 @@ class DespachoForm(forms.Form):
     """
     STATUS_CHOICES = [
         ('', 'Manter status atual'),
-        ('aprovado', 'Aprovar'),
-        ('rejeitado', 'Rejeitar'),
-        ('arquivado', 'Arquivar'),
+        (StatusDocumento.APROVADO, 'Aprovar'),
+        (StatusDocumento.REPROVADO, 'Rejeitar'),
+        (StatusDocumento.ARQUIVADO, 'Arquivar'),
     ]
 
     despacho = forms.CharField(
@@ -327,7 +323,7 @@ class BuscaAvancadaForm(forms.Form):
     )
 
     status = forms.ChoiceField(
-        choices=[('', 'Todos')] + Documento.STATUS_CHOICES,
+        choices=[('', 'Todos')] + StatusDocumento.choices,
         widget=forms.Select(attrs={'class': 'form-select'}),
         required=False
     )
@@ -511,7 +507,7 @@ class FiltroRelatorioForm(forms.Form):
     )
 
     status = forms.ChoiceField(
-        choices=[('', 'Todos')] + Documento.STATUS_CHOICES,
+        choices=[('', 'Todos')] + StatusDocumento.choices,
         widget=forms.Select(attrs={'class': 'form-select'}),
         required=False
     )
@@ -574,7 +570,7 @@ class ArmazenamentoDocumentoForm(forms.ModelForm):
         if self.user:
             departamento_usuario = None
             if hasattr(self.user, 'seccao') and self.user.seccao:
-                departamento_usuario = self.user.seccao.Departamento
+                departamento_usuario = self.user.seccao.departamento
             elif hasattr(self.user, 'departamento') and self.user.departamento:
                 departamento_usuario = self.user.departamento
 

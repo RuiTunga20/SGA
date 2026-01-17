@@ -205,6 +205,7 @@
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="reprovado">
                                 </form>
+                                <a href="{% url 'registrar_armazenamento' documento.id %}" class="btn btn-secondary">📦 Registrar Armazenamento</a>
                                 <form method="post">
                                     <button type="submit" class="btn btn-archive">🗄️ Arquivar</button>
                                     {% csrf_token %}

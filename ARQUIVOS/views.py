@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.utils import timezone
 
 # Create your views here.
 # views.py
@@ -22,8 +23,7 @@ from django.db.models.functions import Now
 
 # Importações Locais
 from .models import (
-    Documento, MovimentacaoDocumento, Departamento,
-    TipoDocumento, Notificacao, CustomUser, Seccoes,
+    Documento, MovimentacaoDocumento, Departamento, Seccoes, Anexo, StatusDocumento, Notificacao, CustomUser, Seccoes,
     ArmazenamentoDocumento, LocalArmazenamento
 )
 from .formularios import (
@@ -31,7 +31,7 @@ from .formularios import (
     ArmazenamentoDocumentoForm
 )
 from .decorators import requer_contexto_hierarquico
-
+from .consumers import send_notification_sync, send_pendencia_update_sync
 
 @login_required
 def dashboard(request):
@@ -48,7 +48,7 @@ def dashboard(request):
     # Se não, é o departamento direto.
     departamento_usuario = user.departamento
     if not departamento_usuario and seccao_usuario:
-        departamento_usuario = seccao_usuario.Departamento
+        departamento_usuario = seccao_usuario.departamento
 
     if not departamento_usuario:
         messages.error(request, 'Você não está associado a nenhum departamento.')
@@ -117,7 +117,7 @@ def dashboard(request):
     # 5. Documentos mortos (Arquivados/Finalizados)
     # Aqui geralmente queremos ver o histórico do Depto todo, mas podemos filtrar
     documentos_mortos = Documento.objects.filter(
-        status='arquivado',
+        status=StatusDocumento.ARQUIVADO,
         departamento_atual=departamento_usuario  # Arquivo costuma ser por Depto
     ).count()
 
@@ -204,7 +204,15 @@ def listar_documentos(request):
     user = request.user
 
     # 1. Base Query (Segura via Manager)
-    documentos = Documento.objects.para_usuario(user)
+    # 1. Base Query (Segura via Manager)
+    documentos = Documento.objects.para_usuario(user).select_related(
+        'tipo_documento', 
+        'departamento_origem', 
+        'departamento_atual', 
+        'seccao_atual', 
+        'criado_por', 
+        'responsavel_atual'
+    )
 
     # 2. Anotações Inteligentes (Lógica no Banco de Dados)
     documentos = documentos.annotate(
@@ -256,7 +264,14 @@ def listar_movimentações(request):
     Lista documentos com filtros e busca
     """
     user = request.user
-    documentos = MovimentacaoDocumento.objects.all()
+    documentos = MovimentacaoDocumento.objects.select_related(
+        'documento', 
+        'departamento_origem', 
+        'departamento_destino', 
+        'seccao_origem', 
+        'seccao_destino', 
+        'usuario'
+    ).all()
     dados = estatisticas_aggregate(user.departamento)
 
     # Filtro por nível de acesso
@@ -303,7 +318,17 @@ def detalhe_documento(request, documento_id):
     """
     Exibir detalhes do documento e permitir ações
     """
-    documento = get_object_or_404(Documento, id=documento_id)
+    documento = get_object_or_404(
+        Documento.objects.select_related(
+            'tipo_documento', 
+            'departamento_origem', 
+            'departamento_atual', 
+            'seccao_atual', 
+            'criado_por', 
+            'responsavel_atual'
+        ), 
+        id=documento_id
+    )
 
     # Obter localização do usuário (prioriza secção)
     user_seccao = getattr(request.user, 'seccao', None)
@@ -313,7 +338,7 @@ def detalhe_documento(request, documento_id):
     pode_encaminhar = False
 
     # Lista de status que bloqueiam qualquer movimentação
-    status_bloqueados = ['arquivado', 'reprovado', 'concluido', 'aprovado']
+    status_bloqueados = [StatusDocumento.ARQUIVADO, StatusDocumento.REPROVADO, 'concluido', StatusDocumento.APROVADO]
 
     if documento.status not in status_bloqueados:
         # Caso 1: Usuário está em uma SECÇÃO
@@ -395,7 +420,7 @@ def detalhe_documento(request, documento_id):
                         if user_seccao:
                             movimentacao.seccao_origem = user_seccao
                             # Assume que a secção tem relação com Departamento
-                            movimentacao.departamento_origem = user_seccao.Departamento
+                            movimentacao.departamento_origem = user_seccao.departamento
                         elif user_departamento:
                             movimentacao.seccao_origem = None
                             movimentacao.departamento_origem = user_departamento
@@ -403,18 +428,59 @@ def detalhe_documento(request, documento_id):
                         movimentacao.save()
 
                         # ===== ATUALIZAR LOCALIZAÇÃO ATUAL DO DOCUMENTO =====
-                        documento.status = 'encaminhamento'
+                        documento.status = StatusDocumento.ENCAMINHAMENTO
 
                         if movimentacao.seccao_destino:
                             # Foi enviado para uma SECÇÃO ESPECÍFICA
                             documento.seccao_atual = movimentacao.seccao_destino
-                            documento.departamento_atual = movimentacao.seccao_destino.Departamento
+                            documento.departamento_atual = movimentacao.seccao_destino.departamento
                         elif movimentacao.departamento_destino:
                             # Foi enviado para um DEPARTAMENTO GERAL
                             documento.seccao_atual = None
                             documento.departamento_atual = movimentacao.departamento_destino
 
                         documento.save()
+
+                        # ===== CRIAR NOTIFICAÇÕES =====
+                        link_documento = request.build_absolute_uri(
+                            reverse('detalhe_documento', args=[documento.id])
+                        )
+                        
+                        # Determinar destinatários
+                        if movimentacao.seccao_destino:
+                            utilizadores = CustomUser.objects.filter(
+                                seccao=movimentacao.seccao_destino,
+                                is_active=True
+                            )
+                            destino_texto = f"secção {movimentacao.seccao_destino.nome}"
+                            group_name = f"seccao_{movimentacao.seccao_destino.id}"
+                        elif movimentacao.departamento_destino:
+                            utilizadores = CustomUser.objects.filter(
+                                departamento=movimentacao.departamento_destino,
+                                is_active=True
+                            )
+                            destino_texto = f"departamento {movimentacao.departamento_destino.nome}"
+                            group_name = f"departamento_{movimentacao.departamento_destino.id}"
+                        else:
+                            utilizadores = []
+                            group_name = None
+                        
+                        # Criar notificações no banco
+                        if utilizadores:
+                            notificacoes = [
+                                Notificacao(
+                                    usuario=u,
+                                    mensagem=f"Documento '{documento.numero_protocolo}' encaminhado para {destino_texto}.",
+                                    link=link_documento
+                                )
+                                for u in utilizadores
+                            ]
+                            Notificacao.objects.bulk_create(notificacoes)
+                            
+                            # Enviar via WebSocket em tempo real
+                            if group_name:
+                                mensagem_ws = f"Novo documento: {documento.numero_protocolo} - {documento.titulo}"
+                                send_notification_sync(group_name, mensagem_ws, link_documento)
 
                         messages.success(request, 'Documento encaminhado com sucesso!')
                         return redirect('detalhe_documento', documento_id=documento.id)
@@ -451,7 +517,7 @@ def detalhe_documento(request, documento_id):
                 return redirect('detalhe_documento', documento_id=documento.id)
 
         # === AÇÃO 3: FINALIZAÇÃO (Aprovado/Reprovado/Arquivado) ===
-        elif action in ['aprovado', 'reprovado', 'arquivado']:
+        elif action in [StatusDocumento.APROVADO, StatusDocumento.REPROVADO, StatusDocumento.ARQUIVADO]:
             if not e_administrador:
                 messages.error(request, 'Apenas administradores podem executar esta ação.')
                 return redirect('detalhe_documento', documento_id=documento.id)
@@ -485,6 +551,29 @@ def detalhe_documento(request, documento_id):
                 movimentacao.data_confirmacao = timezone.now()
                 movimentacao.usuario_confirmacao = request.user
                 movimentacao.save()
+                
+                # === NOTIFICAR O REMETENTE QUE O DOCUMENTO FOI RECEBIDO ===
+                remetente = movimentacao.usuario  # Quem enviou o documento
+                if remetente and remetente != request.user:
+                    link_documento = request.build_absolute_uri(
+                        reverse('detalhe_documento', args=[documento.id])
+                    )
+                    
+                    # Criar notificação no banco
+                    Notificacao.objects.create(
+                        usuario=remetente,
+                        mensagem=f"O documento '{documento.numero_protocolo}' foi recebido por {request.user.username}.",
+                        link=link_documento
+                    )
+                    
+                    # Enviar via WebSocket em tempo real
+                    group_name = f"user_{remetente.id}"
+                    send_notification_sync(
+                        group_name,
+                        f"Documento {documento.numero_protocolo} recebido por {request.user.username}",
+                        link_documento
+                    )
+                
                 messages.success(request, 'Recebimento confirmado!')
 
             return redirect('detalhe_documento', documento_id=documento.id)
@@ -513,7 +602,7 @@ def criar_documento(request):
 
     if hasattr(request.user, 'seccao') and request.user.seccao:
         seccao_usuario = request.user.seccao
-        departamento_usuario = request.user.seccao.Departamento
+        departamento_usuario = request.user.seccao.departamento
     elif hasattr(request.user, 'departamento') and request.user.departamento:
         departamento_usuario = request.user.departamento
 
@@ -705,7 +794,7 @@ def encaminhar_documento(request, documento_id):
                     # 4. Sincronizar o DEPARTAMENTO ATUAL do Documento
                     # PRIORIZA SECÇÃO: Se tem secção destino, o departamento vem da secção
                     if movimentacao_atualizada.seccao_destino:
-                        documento_a_atualizar.departamento_atual = movimentacao_atualizada.seccao_destino.Departamento
+                        documento_a_atualizar.departamento_atual = movimentacao_atualizada.seccao_destino.departamento
                         # Atualiza responsável para o chefe da secção, se existir
                         if movimentacao_atualizada.seccao_destino.responsavel:
                             documento_a_atualizar.responsavel_atual = movimentacao_atualizada.seccao_destino.responsavel
@@ -761,6 +850,21 @@ def encaminhar_documento(request, documento_id):
 
                         if notificacoes:
                             Notificacao.objects.bulk_create(notificacoes)
+                            
+                            # ENVIAR NOTIFICAÇÃO EM TEMPO REAL VIA WEBSOCKET
+                            mensagem_ws = f"Novo documento: {documento_a_atualizar.numero_protocolo} - {documento_a_atualizar.titulo}"
+                            
+                            # Enviar para grupo da secção ou departamento
+                            if movimentacao_atualizada.seccao_destino:
+                                group_name = f"seccao_{movimentacao_atualizada.seccao_destino.id}"
+                                send_notification_sync(group_name, mensagem_ws, link_documento)
+                                # Enviar evento de atualização de pendências em tempo real
+                                send_pendencia_update_sync(group_name, f"Novo documento pendente: {documento_a_atualizar.numero_protocolo}")
+                            elif movimentacao_atualizada.departamento_destino:
+                                group_name = f"departamento_{movimentacao_atualizada.departamento_destino.id}"
+                                send_notification_sync(group_name, mensagem_ws, link_documento)
+                                # Enviar evento de atualização de pendências em tempo real
+                                send_pendencia_update_sync(group_name, f"Novo documento pendente: {documento_a_atualizar.numero_protocolo}")
 
                 messages.success(request, 'Movimentação do documento atualizada com sucesso!')
                 return redirect('listar_movimento')
@@ -861,7 +965,7 @@ def confirmar_recebimento(request, movimentacao_id):
         user_depto = user.departamento
         # Fallback: Se não tem depto direto, pega da secção
         if not user_depto and user_seccao:
-            user_depto = user_seccao.Departamento
+            user_depto = user_seccao.departamento
 
         # 2. Verificar se o usuário está no destino da movimentação
         eh_destino_certo = False
@@ -892,7 +996,7 @@ def confirmar_recebimento(request, movimentacao_id):
             # Isso evita erro se um Admin (sem depto) confirmar.
             if mov.seccao_destino:
                 doc.seccao_atual = mov.seccao_destino
-                doc.departamento_atual = mov.seccao_destino.Departamento
+                doc.departamento_atual = mov.seccao_destino.departamento
             else:
                 doc.seccao_atual = None
                 doc.departamento_atual = mov.departamento_destino
@@ -902,6 +1006,15 @@ def confirmar_recebimento(request, movimentacao_id):
             #     doc.responsavel_atual = doc.seccao_atual.responsavel
 
             doc.save()  # Agora não dará erro de NULL constraint
+
+            # Enviar evento de atualização de pendências via WebSocket
+            # Para que outros utilizadores vejam a tabela atualizada em tempo real
+            if mov.seccao_destino:
+                group_name = f"seccao_{mov.seccao_destino.id}"
+                send_pendencia_update_sync(group_name, f"Documento {doc.numero_protocolo} foi recebido")
+            elif mov.departamento_destino:
+                group_name = f"departamento_{mov.departamento_destino.id}"
+                send_pendencia_update_sync(group_name, f"Documento {doc.numero_protocolo} foi recebido")
 
             messages.success(request, f'Recebimento do documento {doc.numero_protocolo} confirmado!')
         else:
@@ -961,7 +1074,7 @@ def arquivo_morto(request):
     user = request.user
 
     # A base da query são os documentos com status finalizados
-    documentos_arquivados = Documento.objects.filter(status__in=['despacho','aprovado', 'reprovado', 'arquivado'])
+    documentos_arquivados = Documento.objects.filter(status__in=[StatusDocumento.DESPACHO, StatusDocumento.APROVADO, StatusDocumento.REPROVADO, StatusDocumento.ARQUIVADO])
     # Filtro por nível de acesso (igual à view de listar)
     if user.nivel_acesso not in ['admin', 'diretor']:
         documentos_arquivados = documentos_arquivados.filter(
@@ -1010,42 +1123,37 @@ def verificar_notificacoes(request):
 
     user = request.user
 
-    # --- DIAGNÓSTICO NO TERMINAL (OLHE O SEU CMD/TERMINAL) ---
-    print(f"--- DEBUG NOTIFICAÇÕES PARA: {user.username} ---")
-
-    # 1. Verifica dados do Utilizador
-    user_seccao = getattr(user, 'seccao', None)
-    user_dept = getattr(user, 'departamento', None)
-    print(f"Dados do User -> Secção: '{user_seccao}' | Dept: '{user_dept}'")
-
-    # 2. Monta o Filtro
-    filtros = Q(usuario=user)  # Sempre busca as diretas
-
-    if user_seccao:
-        filtros |= Q(seccao=user_seccao)
-        print(f"Adicionado filtro de Secção: {user_seccao}")
-
-    if user_dept:
-        filtros |= Q(departamento=user_dept)
-        print(f"Adicionado filtro de Departamento: {user_dept}")
-
-    # 3. Executa a busca
-    notificacoes = Notificacao.objects.filter(filtros, lida=False).distinct()
+    # Filtro simplificado: apenas notificações diretas do usuário
+    notificacoes = Notificacao.objects.filter(
+        usuario=user, 
+        lida=False
+    ).order_by('-data_criacao')[:20]
+    
     count = notificacoes.count()
 
-    print(f"Total encontrado: {count}")
+    # Retornar no formato esperado pelo JavaScript
+    notificacoes_lista = [
+        {
+            'id': n.id,
+            'mensagem': n.mensagem,
+            'link': n.link or '#',
+            'data': n.data_criacao.strftime('%d/%m/%Y %H:%M') if n.data_criacao else ''
+        }
+        for n in notificacoes
+    ]
 
-    # Se count for 0, vamos ver se existe ALGUMA notificação no sistema para comparar
-    if count == 0:
-        todas = Notificacao.objects.filter(lida=False).values('id', 'seccao', 'departamento', 'usuario__username')
-        print("Atenção: 0 encontradas. Segue lista de notificações PENDENTES no sistema:")
-        for n in todas:
-            print(
-                f" - ID {n['id']}: Para User '{n['usuario__username']}' | Para Sec '{n['seccao']}' | Para Dept '{n['departamento']}'")
-
-    print("------------------------------------------------")
-
-    return JsonResponse({'unread_notifications_count': count})
+    response = JsonResponse({
+        'count': count,
+        'unread_notifications_count': count,  # Compatibilidade
+        'notificacoes': notificacoes_lista
+    })
+    
+    # Evitar cache para garantir dados frescos
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    
+    return response
 
 # Em ARQUIVOS/views.py
 
@@ -1127,7 +1235,7 @@ def load_seccoes(request):
     """
     departamento_id = request.GET.get('departamento')
     if departamento_id:
-        seccoes = Seccoes.objects.filter(Departamento_id=departamento_id, ativo=True).order_by('nome')
+        seccoes = Seccoes.objects.filter(departamento_id=departamento_id, ativo=True).order_by('nome')
     else:
         seccoes = Seccoes.objects.none()
     
@@ -1155,7 +1263,7 @@ def registrar_armazenamento(request, documento_id):
     
     if hasattr(user, 'seccao') and user.seccao:
         seccao_usuario = user.seccao
-        departamento_usuario = user.seccao.Departamento
+        departamento_usuario = user.seccao.departamento
     elif hasattr(user, 'departamento') and user.departamento:
         departamento_usuario = user.departamento
     
@@ -1234,13 +1342,17 @@ def listar_armazenamentos(request, documento_id=None):
         documento = get_object_or_404(Documento, id=documento_id)
         armazenamentos = ArmazenamentoDocumento.objects.filter(
             documento=documento
+        ).select_related(
+            'documento', 
+            'local_armazenamento', 
+            'registrado_por'
         ).order_by('-data_armazenamento')
         titulo = f'Histórico de Armazenamento - {documento.numero_protocolo}'
     else:
         # Lista todos armazenamentos ativos do departamento do usuário
         departamento_usuario = None
         if hasattr(user, 'seccao') and user.seccao:
-            departamento_usuario = user.seccao.Departamento
+            departamento_usuario = user.seccao.departamento
         elif hasattr(user, 'departamento') and user.departamento:
             departamento_usuario = user.departamento
         
@@ -1249,6 +1361,10 @@ def listar_armazenamentos(request, documento_id=None):
                 Q(local_armazenamento__departamento=departamento_usuario) |
                 Q(registrado_por__departamento=departamento_usuario),
                 ativo=True
+            ).select_related(
+                'documento', 
+                'local_armazenamento', 
+                'registrado_por'
             ).order_by('-data_armazenamento')
         else:
             armazenamentos = ArmazenamentoDocumento.objects.none()
@@ -1258,7 +1374,8 @@ def listar_armazenamentos(request, documento_id=None):
     
     # Paginação
     paginator = Paginator(armazenamentos, 20)
-    page_obj = paginator.get_page(request.GET.get('page'))
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
     context = {
         'armazenamentos': page_obj,
@@ -1267,3 +1384,4 @@ def listar_armazenamentos(request, documento_id=None):
     }
     
     return render(request, 'lista_armazenamentos.html', context)
+# Force reload

@@ -22,7 +22,7 @@ def requer_contexto_hierarquico(view_func):
         # 1. Prioridade: Secção
         if hasattr(user, 'seccao') and user.seccao:
             ctx['seccao'] = user.seccao
-            ctx['departamento'] = user.seccao.Departamento
+            ctx['departamento'] = user.seccao.departamento
             ctx['is_seccao'] = True
 
         # 2. Departamento Direto

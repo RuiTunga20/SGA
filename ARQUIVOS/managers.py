@@ -1,8 +1,19 @@
 from django.db import models
 from django.db.models import Q
+from ARQUIVOS.models.mixins import SoftDeleteManager
 
 
-class DocumentoManager(models.Manager):
+class DocumentoManager(SoftDeleteManager):
+    def get_queryset(self):
+        return super().get_queryset().select_related(
+            'tipo_documento',
+            'departamento_origem',
+            'departamento_atual',
+            'seccao_atual',
+            'criado_por',
+            'responsavel_atual'
+        )
+
     def para_usuario(self, user):
         """
         Filtra documentos visíveis para o usuário baseado na hierarquia.
@@ -18,7 +29,7 @@ class DocumentoManager(models.Manager):
         if hasattr(user, 'seccao') and user.seccao:
             return qs.filter(
                 Q(seccao_atual=user.seccao) |
-                (Q(departamento_atual=user.seccao.Departamento) & Q(seccao_atual__isnull=True))
+                (Q(departamento_atual=user.seccao.departamento) & Q(seccao_atual__isnull=True))
             )
 
         # 3. Usuário de Departamento

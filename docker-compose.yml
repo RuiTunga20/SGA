@@ -1,0 +1,81 @@
+services:
+  # =====================
+  # Django Application
+  # =====================
+  web:
+    build: .
+    container_name: sga_web
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DATABASE_URL=postgres://sga_user:sga_password@db:5432/sga_db
+      - REDIS_URL=redis://redis:6379/0
+      - DJANGO_SETTINGS_MODULE=SGA.settings
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  # =====================
+  # PostgreSQL Database
+  # =====================
+  db:
+    image: postgres:16-alpine
+    container_name: sga_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=sga_db
+      - POSTGRES_USER=sga_user
+      - POSTGRES_PASSWORD=sga_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sga_user -d sga_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # =====================
+  # Redis (Channel Layer)
+  # =====================
+  redis:
+    image: redis:7-alpine
+    container_name: sga_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # =====================
+  # Nginx (Opcional - Produção)
+  # =====================
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: sga_nginx
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/conf.d/default.conf
+  #     - static_volume:/app/staticfiles
+  #     - media_volume:/app/media
+  #   depends_on:
+  #     - web
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:
+  media_volume:

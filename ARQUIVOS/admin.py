@@ -3,46 +3,51 @@ from django.contrib.auth.admin import UserAdmin
 from .models import (
     CustomUser, Departamento, TipoDocumento, Documento,
     MovimentacaoDocumento, Anexo, ConfiguracaoSistema, Notificacao, Seccoes,
-    LocalArmazenamento, ArmazenamentoDocumento
+    LocalArmazenamento, ArmazenamentoDocumento, Administracao
 )
 
+@admin.register(Administracao)
+class AdministracaoAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'tipo_municipio',)
+    search_fields = ('nome', 'tipo_municipio')
+    list_filter = ('tipo_municipio',)
 
 # Customização da administração de usuários
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
-    list_display = ('username', 'email', 'nivel_acesso', 'departamento', 'seccao', 'is_staff', 'is_active')
-    list_filter = ('nivel_acesso', 'is_staff', 'is_superuser', 'departamento')
+    list_display = ('username', 'email', 'nivel_acesso', 'departamento', 'seccao', 'administracao', 'is_staff', 'is_active')
+    list_filter = ('nivel_acesso', 'is_staff', 'is_superuser', 'departamento', 'administracao')
     fieldsets = UserAdmin.fieldsets + (
-        ('Hierarquia', {'fields': ('departamento', 'seccao')}),
+        ('Hierarquia', {'fields': ('departamento', 'seccao', 'administracao')}),
         ('Outros', {'fields': ('nivel_acesso', 'telefone')}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Hierarquia', {'fields': ('departamento', 'seccao')}),
+        ('Hierarquia', {'fields': ('departamento', 'seccao', 'administracao')}),
         ('Outros', {'fields': ('nivel_acesso', 'telefone')}),
     )
     search_fields = ('username', 'email', 'first_name', 'last_name')
     ordering = ('username',)
     
     # Autocomplete para campos ForeignKey
-    autocomplete_fields = ['departamento', 'seccao']
+    autocomplete_fields = ['departamento', 'seccao', 'administracao']
 
 
 @admin.register(Seccoes)
 class SeccoesAdmin(admin.ModelAdmin):
     list_display = ('id', 'nome', 'get_departamento_nome', 'get_tipo', 'responsavel', 'ativo')
-    search_fields = ('id', 'nome', 'Departamento__nome', 'codigo')
-    list_filter = ('ativo', 'Departamento__tipo_municipio', 'Departamento')
+    search_fields = ('id', 'nome', 'departamento__nome', 'codigo')
+    list_filter = ('ativo', 'departamento__tipo_municipio', 'departamento')
     
     # Autocomplete para campos ForeignKey
-    autocomplete_fields = ['Departamento', 'responsavel']
+    autocomplete_fields = ['departamento', 'responsavel']
 
     def get_departamento_nome(self, obj):
-        return obj.Departamento.nome
+        return obj.departamento.nome
     get_departamento_nome.short_description = 'Departamento'
 
     def get_tipo(self, obj):
-        return obj.Departamento.get_tipo_municipio_display()
+        return obj.departamento.get_tipo_municipio_display()
     get_tipo.short_description = 'Tipo de Município'
 
 
@@ -68,7 +73,7 @@ class TipoDocumentoAdmin(admin.ModelAdmin):
 class DocumentoAdmin(admin.ModelAdmin):
     list_display = ('numero_protocolo', 'titulo', 'status', 'prioridade', 'departamento_atual', 'data_criacao')
     list_filter = ('status', 'prioridade', 'tipo_documento', 'departamento_atual')
-    search_fields = ('numero_protocolo', 'titulo', 'tags', 'Utente', 'conteudo')
+    search_fields = ('numero_protocolo', 'titulo', 'tags', 'utente', 'conteudo')
     readonly_fields = ('numero_protocolo', 'data_criacao')
     
     # Autocomplete para campos ForeignKey
