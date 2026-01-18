@@ -286,3 +286,149 @@ body {
         display: block;
     }
 }
+
+/* =============================================================================
+   HEADER & NAVEGAÇÃO
+   ============================================================================= */
+.header {
+    background: var(--bg-secondary);
+    border-bottom: 4px solid var(--primary-orange);
+    padding: 1rem 2rem;
+    position: relative;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative; /* Para posicionamento absoluto se necessário */
+}
+
+.logo-area {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.logo {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--text-grey);
+    text-decoration: none;
+}
+
+.logo .orange-text {
+    color: var(--primary-orange);
+}
+
+/* NOVO: Nome do Departamento (Canto Inferior Esquerdo / Abaixo do Logo) */
+.dept-header-label {
+    font-size: 0.85rem;
+    color: #777;
+    margin-top: 2px;
+    font-weight: normal;
+    max-width: 400px; /* Limitar largura para não esticar demais */
+    line-height: 1.2;
+}
+
+/* NOVO: Nome da Administração (Canto Superior Direito / Centralizado acima do menu) */
+.admin-header-label {
+    position: absolute;
+    top: -10px; /* Ajuste fino para ficar no topo */
+    right: 0;
+    font-size: 0.8rem;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: bold;
+}
+
+/* Ajuste para telas menores */
+@media (max-width: 768px) {
+    .admin-header-label {
+        position: static;
+        margin-bottom: 5px;
+        text-align: center;
+        width: 100%;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .logo-area {
+        align-items: center;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+}
+/* NOVO: Nome do Usuário (Canto Superior Direito / Ao lado do sino) */
+.user-profile-name {
+    font-weight: bold;
+    color: var(--text-grey);
+    font-size: 0.9rem;
+    margin-right: 0.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.user-profile-name a {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s;
+}
+
+.user-profile-name a:hover {
+    color: var(--primary-orange);
+}
+
+/* Ajuste para telas menores */
+@media (max-width: 768px) {
+    .user-profile-name {
+        display: none;
+        /* Ocultar em mobile se faltar espaço, ou ajustar */
+    }
+}/* BLOCO DO USUÁRIO (Novo Design) */
+.user-info-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    /* Alinha texto à direita */
+    margin-right: 1rem;
+    line-height: 1.2;
+}
+
+.user-name {
+    font-weight: bold;
+    color: var(--text-grey);
+    font-size: 0.95rem;
+}
+
+.user-name a {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s;
+}
+
+.user-name a:hover {
+    color: var(--primary-orange);
+}
+
+.user-admin {
+    font-size: 0.7rem;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+
+/* Ajuste para mobile */
+@media (max-width: 768px) {
+    .user-info-block {
+        display: none;
+        /* Ocultar em telas muito pequenas ou ajustar */
+    }
+}

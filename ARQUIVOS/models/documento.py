@@ -95,6 +95,15 @@ class Documento(SoftDeleteModel, AuditoriaModel):
     criado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='documentos_criados')
     responsavel_atual = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
                                           related_name='documentos_responsavel')
+    
+    # Campo CRÍTICO para isolamento Multi-Tenant (OBRIGATÓRIO)
+    administracao = models.ForeignKey(
+        'ARQUIVOS.Administracao',
+        on_delete=models.PROTECT,
+        related_name='documentos',
+        null=False,  # OBRIGATÓRIO - garante isolamento
+        blank=False
+    )
 
     data_criacao = models.DateTimeField(auto_now_add=True)
     data_prazo = models.DateTimeField(null=True, blank=True)

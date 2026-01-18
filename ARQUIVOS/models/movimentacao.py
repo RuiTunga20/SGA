@@ -86,6 +86,26 @@ class MovimentacaoDocumento(models.Model):
                     'seccao_origem': f'A secção de origem não pertence ao departamento de origem.'
                 })
 
+        # ===== VALIDAÇÃO DE ISOLAMENTO MULTI-TENANT =====
+        # Garante que origem e destino pertencem à mesma administração do documento
+        
+        admin_documento = getattr(self.documento, 'administracao', None) if self.documento else None
+        
+        # Validar departamento de destino
+        if self.departamento_destino and self.departamento_destino.administracao:
+            if admin_documento and self.departamento_destino.administracao != admin_documento:
+                raise ValidationError({
+                    'departamento_destino': f'O departamento de destino "{self.departamento_destino.nome}" pertence a outra administração.'
+                })
+        
+        # Validar secção de destino (herda administração via departamento)
+        if self.seccao_destino:
+            admin_seccao = getattr(self.seccao_destino, 'administracao', None)
+            if admin_documento and admin_seccao and admin_seccao != admin_documento:
+                raise ValidationError({
+                    'seccao_destino': f'A secção de destino "{self.seccao_destino.nome}" pertence a outra administração.'
+                })
+
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)

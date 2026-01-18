@@ -1,12 +1,15 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from .models import CustomUser, Departamento, Seccoes, Documento, MovimentacaoDocumento, ArmazenamentoDocumento, LocalArmazenamento, TipoDocumento
+from .models import CustomUser, Departamento, Seccoes, Documento, MovimentacaoDocumento, ArmazenamentoDocumento, LocalArmazenamento, TipoDocumento, Administracao
 
 class ModelValidationTests(TestCase):
     def setUp(self):
-        # Setup básico de Departamentos e Secções
-        self.dept_a = Departamento.objects.create(nome="Departamento A", codigo="DEP-A")
-        self.dept_b = Departamento.objects.create(nome="Departamento B", codigo="DEP-B")
+        # Criar Administração obrigatória
+        self.admin = Administracao.objects.create(nome="Admin Teste", tipo_municipio="A")
+        
+        # Setup básico de Departamentos e Secções COM administração
+        self.dept_a = Departamento.objects.create(nome="Departamento A", codigo="DEP-A", administracao=self.admin)
+        self.dept_b = Departamento.objects.create(nome="Departamento B", codigo="DEP-B", administracao=self.admin)
         
         self.seccao_a1 = Seccoes.objects.create(nome="Secção A1", departamento=self.dept_a)
         self.seccao_b1 = Seccoes.objects.create(nome="Secção B1", departamento=self.dept_b)
@@ -22,6 +25,7 @@ class ModelValidationTests(TestCase):
             username="user_valid", 
             departamento=self.dept_a, 
             seccao=self.seccao_a1,
+            administracao=self.admin,
             password="password123"
         )
         try:
@@ -34,6 +38,7 @@ class ModelValidationTests(TestCase):
             username="user_invalid", 
             departamento=self.dept_a, 
             seccao=self.seccao_b1,  # Pertence ao Dept B
+            administracao=self.admin,
             password="password123"
         )
         with self.assertRaises(ValidationError):
@@ -41,13 +46,14 @@ class ModelValidationTests(TestCase):
 
     def test_movimentacao_validation(self):
         """Testa validação de destino na Movimentação"""
-        user = CustomUser.objects.create(username="tester", departamento=self.dept_a, password="password123")
+        user = CustomUser.objects.create(username="tester", departamento=self.dept_a, administracao=self.admin, password="password123")
         doc = Documento.objects.create(
             titulo="Doc Teste", 
             tipo_documento=self.tipo_doc,
             departamento_origem=self.dept_a,
             departamento_atual=self.dept_a,
             criado_por=user,
+            administracao=self.admin,
             telefone="900000000",
             utente="Tester"
         )
@@ -76,13 +82,14 @@ class ModelValidationTests(TestCase):
 
     def test_armazenamento_validation(self):
         """Testa validação de Armazenamento (Local Cadastrado vs Manual)"""
-        user = CustomUser.objects.create(username="archivist", departamento=self.dept_a, password="password123")
+        user = CustomUser.objects.create(username="archivist", departamento=self.dept_a, administracao=self.admin, password="password123")
         doc = Documento.objects.create(
             titulo="Doc Arquivo", 
             tipo_documento=self.tipo_doc,
             departamento_origem=self.dept_a,
             departamento_atual=self.dept_a,
             criado_por=user,
+            administracao=self.admin,
             telefone="900000000",
             utente="Tester"
         )
@@ -125,7 +132,7 @@ class ModelValidationTests(TestCase):
 
     def test_documento_fixes(self):
         """Testa as correções críticas no modelo Documento"""
-        user = CustomUser.objects.create(username="doc_fixer", departamento=self.dept_a, password="password123")
+        user = CustomUser.objects.create(username="doc_fixer", departamento=self.dept_a, administracao=self.admin, password="password123")
         
         # 1. Teste Telefone Validation (Mais de 9 dígitos)
         doc_invalid_phone = Documento(
@@ -134,6 +141,7 @@ class ModelValidationTests(TestCase):
             departamento_origem=self.dept_a,
             departamento_atual=self.dept_a,
             criado_por=user,
+            administracao=self.admin,
             telefone="1234567890", # 10 digits
             utente="Tester"
         )
@@ -147,6 +155,7 @@ class ModelValidationTests(TestCase):
             departamento_origem=self.dept_a,
             departamento_atual=self.dept_a,
             criado_por=user,
+            administracao=self.admin,
             telefone="12345678", # 8 digits
             utente="Tester"
         )
@@ -160,6 +169,7 @@ class ModelValidationTests(TestCase):
             departamento_origem=self.dept_a,
             departamento_atual=self.dept_a,
             criado_por=user,
+            administracao=self.admin,
             telefone="900000000",
             utente="Tester"
         )

@@ -39,3 +39,19 @@ def requer_contexto_hierarquico(view_func):
         return view_func(request, *args, **kwargs)
 
     return _wrapped_view
+
+
+def requer_mesma_administracao(view_func):
+    """
+    Garante que o usuário tenha uma administração vinculada.
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+             return redirect('login')
+
+        if request.user.nivel_acesso != 'admin_sistema' and not request.user.administracao:
+            messages.error(request, 'Acesso negado: Usuário sem administração vinculada.')
+            return redirect('/')
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view

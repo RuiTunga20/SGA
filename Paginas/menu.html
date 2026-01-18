@@ -5,26 +5,31 @@
     <header class="header">
         <div class="header-content">
             <div class="logo-area">
-                <a href="{% url 'Painel' %}"><div class="logo">sigap<span class="orange-text">.gov.ao</span></div>
+                <a href="{% url 'Painel' %}"><div class="logo">sigap<span class="orange-text">.gov.ao</span></div></a>
+                
                 {% if user.is_authenticated %}
-                    <div class="department-name"> {% if user.is_staff %}
-                            <a href="/Painel-Control/" class="">{{ user.username }}</a>
-                        {% else %}
-                            <a href="/" class="">{{ user.username }}</a>
+                    <div class="dept-header-label">
+                        {% if user.departamento %}
+                            {{ user.departamento.nome }}
+                        {% elif user.seccao %}
+                            {{ user.seccao.nome }}
                         {% endif %}
-                         {% if user.departamento %}
-  - {{ user.departamento }}
-{% else %}
-  - {{ user.seccao }}
-{% endif %}
-
-                        </div>
-
-
+                    </div>
                 {% endif %}
-                </a>
-
             </div>
+
+            {% if user.is_authenticated and user.administracao %}
+                <div class="admin-header-label">
+                            {% if user.is_staff %}
+                                <a href="/Painel-Control/" title="Painel Administrativo">{{ user.username }}</a>
+                            {% else %}
+                                <span>{{ user.username }}</span>
+                            {% endif %}
+                       -
+                         {{ user.administracao.nome }} <br>
+                    
+                </div>
+            {% endif %}
             <div class="header-right">
                 <nav class="main-nav" id="main-nav">
                     <ul>
@@ -40,7 +45,7 @@
                 </nav>
                 <div class="header-actions">
                     {% if user.is_authenticated %}
-
+                       
                         <div class="notification-bell" id="notificationBell">
                             <span>🔔</span>
                             {% if unread_notifications_count > 0 %}

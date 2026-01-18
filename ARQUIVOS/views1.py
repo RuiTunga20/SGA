@@ -298,9 +298,13 @@ def detalhe_documento(request, documento_id):
                 documento.departamento_atual = form.cleaned_data['departamento_destino']
                 documento.status = 'encaminhamento'
                 documento.save()
-                # --- INÍCIO DA CORREÇÃO (ADICIONAR NOTIFICAÇÃO) ---
+                # --- INÍCIO DA CORREÇÃO (ADICIONAR NOTIFICAÇÃO COM FILTRO DE ADMIN) ---
                 departamento_destino_obj = form.cleaned_data['departamento_destino']
-                utilizadores_a_notificar = CustomUser.objects.filter(departamento=departamento_destino_obj)
+                utilizadores_a_notificar = CustomUser.objects.filter(
+                    departamento=departamento_destino_obj,
+                    administracao=request.user.administracao,
+                    is_active=True
+                )
 
                 link_documento = request.build_absolute_uri(
                     reverse('detalhe_documento', args=[documento.id])
@@ -577,7 +581,11 @@ def encaminhar_documento(request, documento_id):
                     if documento.status == 'encaminhamento':
 
                         departamento_destino = documento.departamento_atual
-                        utilizadores_a_notificar = CustomUser.objects.filter(departamento=departamento_destino)
+                        utilizadores_a_notificar = CustomUser.objects.filter(
+                            departamento=departamento_destino,
+                            administracao=request.user.administracao,
+                            is_active=True
+                        )
 
                         link_documento = request.build_absolute_uri(
                             reverse('detalhe_documento', args=[documento.id])

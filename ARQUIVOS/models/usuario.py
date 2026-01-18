@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
+from ARQUIVOS.managers import AdministracaoManager, UsuarioManager
 
 class Administracao(models.Model):
     TIPO_MUNICIPIO_CHOICES = [
@@ -12,15 +13,20 @@ class Administracao(models.Model):
     ]
     nome = models.CharField(max_length=255)
     tipo_municipio = models.CharField(max_length=1, choices=TIPO_MUNICIPIO_CHOICES, default='A')
+    provincia = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return self.nome   
     
+    objects = AdministracaoManager()
+
     class Meta:
         verbose_name = "Administração"
         verbose_name_plural = "Administrações" 
 
 class CustomUser(AbstractUser):
+    objects = UsuarioManager()
+
     NIVEL_CHOICES = [
         # Níveis de Gestão
         ('admin_sistema', 'Administrador de Sistema'),
@@ -58,11 +64,12 @@ class CustomUser(AbstractUser):
     )
 
     telefone = models.CharField(max_length=15, blank=True)
+    # Usuário DEVE pertencer a uma administração (OBRIGATÓRIO - Multi-Tenant)
     administracao = models.ForeignKey(
         'Administracao',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        on_delete=models.PROTECT,  # Não pode deletar admin com usuários
+        null=False,  # OBRIGATÓRIO
+        blank=False,
         related_name='usuarios_administracao'
     )
     created_at = models.DateTimeField(auto_now_add=True)
@@ -83,6 +90,13 @@ class CustomUser(AbstractUser):
             raise ValidationError(
                 'O utilizador deve pertencer a pelo menos um departamento ou secção.'
             )
+            
+        # Validação Redundante de Segurança (Isolamento)
+        if self.administracao and self.departamento and self.departamento.administracao:
+            if self.departamento.administracao != self.administracao:
+                raise ValidationError({
+                    'departamento': f'O departamento "{self.departamento.nome}" pertence à administração "{self.departamento.administracao.nome}", mas o usuário está na administração "{self.administracao.nome}".'
+                })
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -110,6 +124,21 @@ class CustomUser(AbstractUser):
             'seccao': self.seccao,
             'departamento': self.departamento if not self.seccao else self.seccao.departamento
         }
+
+    def pode_ver_usuario(self, outro_usuario):
+        """
+        Verifica se este usuário pode ver o outro_usuario.
+        """
+        # Admin sistema vê todos
+        if self.nivel_acesso == 'admin_sistema':
+            return True
+        
+        # Se não tem administração, não vê ninguém (ou só a si mesmo?)
+        if not self.administracao:
+            return False
+            
+        # Mesma administração
+        return self.administracao == outro_usuario.administracao
 
 
     def __str__(self):

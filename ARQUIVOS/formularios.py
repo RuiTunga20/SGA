@@ -105,62 +105,47 @@ class EncaminharDocumentoForm(forms.ModelForm):
         # ========== LÓGICA DE FILTROS BASEADA NO USUÁRIO ==========
 
         if self.user:
-            # Determinar o departamento e secção do usuário
-            departamento_usuario = None
-            seccao_usuario = None
-
-            if hasattr(self.user, 'seccao') and self.user.seccao:
-                seccao_usuario = self.user.seccao
-                departamento_usuario = self.user.seccao.departamento
-            elif hasattr(self.user, 'departamento') and self.user.departamento:
-                departamento_usuario = self.user.departamento
-
-            # ========== CENÁRIO 1: USUÁRIO ESTÁ EM UMA SECÇÃO ==========
-            if seccao_usuario:
-                # DEPARTAMENTO: Apenas o SEU departamento
-                self.fields['departamento_destino'].queryset = Departamento.objects.filter(
-                    id=departamento_usuario.id,
-                    ativo=True
-                )
-
-                # SECÇÕES: Apenas secções do SEU departamento, EXCETO a sua
-                self.fields['seccao_destino'].queryset = Seccoes.objects.filter(
-                    departamento=departamento_usuario,
-                    ativo=True
-                ).exclude(
-                    id=seccao_usuario.id
-                ).select_related('departamento').order_by('nome')
-
-                self.fields['departamento_destino'].label = "Encaminhar para o Departamento (geral)"
-                self.fields['seccao_destino'].label = "Ou para outra Secção do seu Departamento"
-
-            # ========== CENÁRIO 2: USUÁRIO ESTÁ DIRETO NO DEPARTAMENTO ==========
-            elif departamento_usuario:
-                tipo_municipio = departamento_usuario.tipo_municipio
-
-                # DEPARTAMENTO: Todos os departamentos do MESMO TIPO (município)
-                # EXCETO o próprio departamento do usuário
-                self.fields['departamento_destino'].queryset = Departamento.objects.filter(
-                    tipo_municipio=tipo_municipio,
-                    ativo=True
-                ).exclude(
-                    id=departamento_usuario.id  # Exclui o próprio departamento
-                ).order_by('nome')
-
-                # SECÇÕES: Todas as secções do SEU departamento
-                self.fields['seccao_destino'].queryset = Seccoes.objects.filter(
-                    departamento=departamento_usuario,
-                    ativo=True
-                ).select_related('departamento').order_by('nome')
-
-                self.fields[
-                    'departamento_destino'].label = f"Encaminhar para Departamento (Município Tipo {tipo_municipio})"
-                self.fields['seccao_destino'].label = "Ou para Secção do seu Departamento"
-
+            # Determinar a administração do usuário
+            administracao_usuario = self.user.administracao
+            
+            if administracao_usuario:
+                # Lógica diferenciada baseada na localização do usuário
+                if hasattr(self.user, 'seccao') and self.user.seccao:
+                    # CENÁRIO A: Usuário está em uma SECÇÃO
+                    dept_pai = self.user.seccao.departamento
+                    
+                    # Departamento: Vê APENAS o seu departamento pai
+                    self.fields['departamento_destino'].queryset = Departamento.objects.filter(id=dept_pai.id)
+                    
+                    # Secções: Vê TODAS as secções do seu departamento (para encaminhar a colegas)
+                    self.fields['seccao_destino'].queryset = Seccoes.objects.filter(
+                        departamento=dept_pai
+                    ).order_by('nome')
+                    
+                else:
+                    # CENÁRIO B: Usuário está no DEPARTAMENTO (Diretor/Chefe)
+                    # Departamento: Vê TODOS os departamentos da administração
+                    self.fields['departamento_destino'].queryset = Departamento.objects.para_administracao(administracao_usuario).order_by('nome')
+                    
+                    # Secções: Vê TODAS as secções do seu próprio departamento
+                    if hasattr(self.user, 'departamento') and self.user.departamento:
+                        self.fields['seccao_destino'].queryset = Seccoes.objects.filter(
+                            departamento=self.user.departamento
+                        ).order_by('nome')
+                    else:
+                        self.fields['seccao_destino'].queryset = Seccoes.objects.none()
+                
+                self.fields['departamento_destino'].label = "Encaminhar para Departamento"
+                self.fields['seccao_destino'].label = "Ou para Secção (Interno)"
             else:
-                # Se não tem departamento nem secção
-                self.fields['departamento_destino'].queryset = Departamento.objects.none()
-                self.fields['seccao_destino'].queryset = Seccoes.objects.none()
+                # Se usuário não tem administração (ex: admin sistema sem vinculo), vê tudo?
+                # Ou não vê nada? Pela regra estrita, melhor não ver nada ou tudo se for superuser
+                if self.user.nivel_acesso == 'admin_sistema':
+                     self.fields['departamento_destino'].queryset = Departamento.objects.all()
+                     self.fields['seccao_destino'].queryset = Seccoes.objects.all()
+                else:
+                    self.fields['departamento_destino'].queryset = Departamento.objects.none()
+                    self.fields['seccao_destino'].queryset = Seccoes.objects.none()
 
         else:
             # Se não há usuário
@@ -387,10 +372,24 @@ class CustomUserCreationForm(UserCreationForm):
         required=False
     )
 
+    administracao = forms.ModelChoiceField(
+        queryset=Administracao.objects.all(),
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=True,
+        label='Administração'
+    )
+
     departamento = forms.ModelChoiceField(
-        queryset=Departamento.objects.filter(ativo=True),
+        queryset=Departamento.objects.none(), # Inicialmente vazio, preenchido via AJAX/View ou POST
         widget=forms.Select(attrs={'class': 'form-select'}),
         required=True
+    )
+
+    seccao = forms.ModelChoiceField(
+        queryset=Seccoes.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=False,
+        label='Secção (Opcional)'
     )
 
     nivel_acesso = forms.ChoiceField(
@@ -403,7 +402,7 @@ class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = CustomUser
         fields = ('username', 'email', 'first_name', 'last_name',
-                  'telefone', 'departamento', 'nivel_acesso',
+                  'telefone', 'administracao', 'departamento', 'seccao', 'nivel_acesso',
                   'password1', 'password2')
 
     def __init__(self, *args, **kwargs):
@@ -411,6 +410,26 @@ class CustomUserCreationForm(UserCreationForm):
         self.fields['username'].widget.attrs.update({'class': 'form-control'})
         self.fields['password1'].widget.attrs.update({'class': 'form-control'})
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
+
+        # Lógica para popular querysets se houver dados (POST ou instância)
+        if 'administracao' in self.data:
+            try:
+                admin_id = int(self.data.get('administracao'))
+                administracao = Administracao.objects.get(id=admin_id)
+                self.fields['departamento'].queryset = Departamento.objects.para_administracao(administracao)
+            except (ValueError, TypeError, Administracao.DoesNotExist):
+                pass
+        elif self.instance.pk and self.instance.administracao:
+            self.fields['departamento'].queryset = Departamento.objects.para_administracao(self.instance.administracao)
+
+        if 'departamento' in self.data:
+            try:
+                dept_id = int(self.data.get('departamento'))
+                self.fields['seccao'].queryset = Seccoes.objects.filter(departamento_id=dept_id)
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk and self.instance.departamento:
+            self.fields['seccao'].queryset = Seccoes.objects.filter(departamento=self.instance.departamento)
 
 
 class DepartamentoForm(forms.ModelForm):

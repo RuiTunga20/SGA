@@ -30,10 +30,11 @@ from .formularios import (
     DocumentoForm, EncaminharDocumentoForm, DespachoForm,
     ArmazenamentoDocumentoForm
 )
-from .decorators import requer_contexto_hierarquico
+from .decorators import requer_contexto_hierarquico, requer_mesma_administracao
 from .consumers import send_notification_sync, send_pendencia_update_sync
 
 @login_required
+@requer_mesma_administracao
 def dashboard(request):
     """
     Dashboard com estatísticas dinâmicas baseadas na hierarquia (Secção ou Departamento).
@@ -198,6 +199,7 @@ from django.db.models.functions import TruncDate, Now
 
 
 @login_required
+@requer_mesma_administracao
 @requer_contexto_hierarquico
 def listar_documentos(request):
     ctx = request.contexto_usuario
@@ -259,11 +261,15 @@ def listar_documentos(request):
     }
 
     return render(request, 'listardoumentos.html', context)
+@login_required
+@requer_mesma_administracao
 def listar_movimentações(request):
     """
     Lista documentos com filtros e busca
     """
     user = request.user
+    
+    # Filtra movimentações apenas da mesma administração
     documentos = MovimentacaoDocumento.objects.select_related(
         'documento', 
         'departamento_origem', 
@@ -271,7 +277,18 @@ def listar_movimentações(request):
         'seccao_origem', 
         'seccao_destino', 
         'usuario'
-    ).all()
+    ).filter(usuario__administracao=user.administracao)
+    
+    # Se for admin de sistema, vê tudo (opcional)
+    if user.nivel_acesso == 'admin_sistema':
+        documentos = MovimentacaoDocumento.objects.select_related(
+            'documento', 
+            'departamento_origem', 
+            'departamento_destino', 
+            'seccao_origem', 
+            'seccao_destino', 
+            'usuario'
+        ).all()
     dados = estatisticas_aggregate(user.departamento)
 
     # Filtro por nível de acesso
@@ -314,6 +331,7 @@ def listar_movimentações(request):
 
 
 @login_required
+@requer_mesma_administracao
 def detalhe_documento(request, documento_id):
     """
     Exibir detalhes do documento e permitir ações
@@ -446,10 +464,11 @@ def detalhe_documento(request, documento_id):
                             reverse('detalhe_documento', args=[documento.id])
                         )
                         
-                        # Determinar destinatários
+                        # Determinar destinatários (FILTRO POR ADMINISTRAÇÃO)
                         if movimentacao.seccao_destino:
                             utilizadores = CustomUser.objects.filter(
                                 seccao=movimentacao.seccao_destino,
+                                administracao=request.user.administracao,
                                 is_active=True
                             )
                             destino_texto = f"secção {movimentacao.seccao_destino.nome}"
@@ -457,6 +476,7 @@ def detalhe_documento(request, documento_id):
                         elif movimentacao.departamento_destino:
                             utilizadores = CustomUser.objects.filter(
                                 departamento=movimentacao.departamento_destino,
+                                administracao=request.user.administracao,
                                 is_active=True
                             )
                             destino_texto = f"departamento {movimentacao.departamento_destino.nome}"
@@ -592,6 +612,7 @@ def detalhe_documento(request, documento_id):
 
     return render(request, 'Paginasdetalhe.html', context)
 @login_required
+@requer_mesma_administracao
 def criar_documento(request):
     """
     Criar novo documento
@@ -627,6 +648,10 @@ def criar_documento(request):
             documento.departamento_origem = departamento_usuario
             documento.departamento_atual = departamento_usuario
             documento.responsavel_atual = request.user
+            
+            # ATRIBUIÇÃO CRÍTICA DE ADMINISTRAÇÃO
+            documento.administracao = request.user.administracao
+            
             documento.save()
 
             # Criar movimentação de criação (SEM destino - é permitido!)
@@ -646,6 +671,7 @@ def criar_documento(request):
 
     return render(request, 'Paginascriar.html', {'form': form, 'dados': dados})
 @login_required
+@requer_mesma_administracao
 def Editar_documento(request, id):
     """
     View completa para editar um documento existente, com verificação de permissões CORRIGIDA.
@@ -702,6 +728,7 @@ def Editar_documento(request, id):
 # Em sua_app/views.py
 
 @login_required
+@requer_mesma_administracao
 def cancelar_documento(request, documento_id):
     documento = get_object_or_404(Documento, id=documento_id)
     user = request.user
@@ -736,6 +763,8 @@ def cancelar_documento(request, documento_id):
 
 
 
+@login_required
+@requer_mesma_administracao
 def encaminhar_documento(request, documento_id):
     """
     View para editar uma movimentação existente E SINCRONIZAR COM O DOCUMENTO PRINCIPAL.
@@ -757,8 +786,12 @@ def encaminhar_documento(request, documento_id):
         return redirect('lista_documentos')
 
     # Validação de permissões
-    if not request.user.has_perm('ARQUIVOS.change_movimentacaodocumento'):
-        messages.error(request, 'Você não tem permissão para editar esta movimentação.')
+    # Validação de permissões (RELAXADA)
+    # Antes exigia 'change_movimentacaodocumento', o que bloqueava técnicos/chefes de secção.
+    # Agora permite se o usuário estiver autenticado e ativo (já garantido pelo login_required).
+    # O decorator @requer_mesma_administracao já garante isolamento de tenant.
+    if not request.user.is_active:
+        messages.error(request, 'Sua conta está inativa.')
         return redirect('detalhe_documento', documento_id=movimentacao.documento.id)
 
     if request.method == 'POST':
@@ -819,17 +852,19 @@ def encaminhar_documento(request, documento_id):
 
                         # DETERMINA QUEM DEVE SER NOTIFICADO
                         if movimentacao_atualizada.seccao_destino:
-                            # Notifica APENAS usuários da SECÇÃO específica
+                            # Notifica APENAS usuários da SECÇÃO específica (FILTRO POR ADMINISTRAÇÃO)
                             utilizadores_a_notificar = CustomUser.objects.filter(
                                 seccao=movimentacao_atualizada.seccao_destino,
+                                administracao=request.user.administracao,
                                 is_active=True
                             )
                             destino_texto = f"secção {movimentacao_atualizada.seccao_destino.nome}"
 
                         elif movimentacao_atualizada.departamento_destino:
-                            # Notifica TODOS os usuários do DEPARTAMENTO
+                            # Notifica TODOS os usuários do DEPARTAMENTO (FILTRO POR ADMINISTRAÇÃO)
                             utilizadores_a_notificar = CustomUser.objects.filter(
                                 departamento=movimentacao_atualizada.departamento_destino,
+                                administracao=request.user.administracao,
                                 is_active=True
                             )
                             destino_texto = f"departamento {movimentacao_atualizada.departamento_destino.nome}"

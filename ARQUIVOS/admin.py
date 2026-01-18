@@ -6,15 +6,87 @@ from .models import (
     LocalArmazenamento, ArmazenamentoDocumento, Administracao
 )
 
+
+# ========================================
+# MIXIN PARA ISOLAMENTO MULTI-TENANT
+# ========================================
+
+class AdminMultiTenantMixin:
+    """
+    Mixin para filtrar registros por administração do usuário logado.
+    Superusuários e admin_sistema podem ver tudo.
+    """
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        
+        # Superusuários veem tudo
+        if request.user.is_superuser:
+            return qs
+        
+        # admin_sistema também vê tudo
+        if getattr(request.user, 'nivel_acesso', None) == 'admin_sistema':
+            return qs
+        
+        # Usuários normais veem apenas dados da sua administração
+        user_admin = getattr(request.user, 'administracao', None)
+        if user_admin:
+            # Tenta filtrar pelo campo 'administracao' diretamente
+            if hasattr(qs.model, 'administracao'):
+                return qs.filter(administracao=user_admin)
+            # Para modelos relacionados (ex: Notificacao -> usuario -> administracao)
+            elif hasattr(qs.model, 'usuario'):
+                return qs.filter(usuario__administracao=user_admin)
+        
+        return qs
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """Filtra dropdowns de ForeignKey por administração."""
+        user_admin = getattr(request.user, 'administracao', None)
+        
+        if not request.user.is_superuser and user_admin:
+            # Filtrar departamentos
+            if db_field.name == 'departamento' or db_field.name in ['departamento_origem', 'departamento_atual', 'departamento_destino']:
+                kwargs['queryset'] = Departamento.objects.filter(administracao=user_admin)
+            # Filtrar secções
+            elif db_field.name == 'seccao' or db_field.name in ['seccao_origem', 'seccao_destino', 'seccao_atual']:
+                kwargs['queryset'] = Seccoes.objects.filter(departamento__administracao=user_admin)
+            # Filtrar usuários
+            elif db_field.name in ['usuario', 'criado_por', 'responsavel_atual', 'registrado_por', 'retirado_por', 'usuario_confirmacao']:
+                kwargs['queryset'] = CustomUser.objects.filter(administracao=user_admin)
+        
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
 @admin.register(Administracao)
 class AdministracaoAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'tipo_municipio',)
-    search_fields = ('nome', 'tipo_municipio')
-    list_filter = ('tipo_municipio',)
+    list_display = ('nome', 'tipo_municipio', 'provincia', 'get_total_departamentos', 'get_total_seccoes')
+    search_fields = ('nome', 'provincia')
+    list_filter = ('tipo_municipio', 'provincia')
+    ordering = ('provincia', 'nome')
+    
+    def get_total_departamentos(self, obj):
+        """Retorna o total de departamentos desta administração"""
+        return Departamento.objects.filter(administracao=obj).count()
+    get_total_departamentos.short_description = 'Departamentos'
+    get_total_departamentos.admin_order_field = 'departamentos_count'
+    
+    def get_total_seccoes(self, obj):
+        """Retorna o total de secções desta administração"""
+        return Seccoes.objects.filter(departamento__administracao=obj).count()
+    get_total_seccoes.short_description = 'Secções'
+    
+    def get_queryset(self, request):
+        """Otimiza a query com anotações de contagem"""
+        from django.db.models import Count
+        qs = super().get_queryset(request)
+        return qs.annotate(
+            departamentos_count=Count('departamentos_especificos', distinct=True)
+        )
 
 # Customização da administração de usuários
 @admin.register(CustomUser)
-class CustomUserAdmin(UserAdmin):
+class CustomUserAdmin(AdminMultiTenantMixin, UserAdmin):
     model = CustomUser
     list_display = ('username', 'email', 'nivel_acesso', 'departamento', 'seccao', 'administracao', 'is_staff', 'is_active')
     list_filter = ('nivel_acesso', 'is_staff', 'is_superuser', 'departamento', 'administracao')
@@ -34,10 +106,10 @@ class CustomUserAdmin(UserAdmin):
 
 
 @admin.register(Seccoes)
-class SeccoesAdmin(admin.ModelAdmin):
+class SeccoesAdmin(AdminMultiTenantMixin, admin.ModelAdmin):
     list_display = ('id', 'nome', 'get_departamento_nome', 'get_tipo', 'responsavel', 'ativo')
     search_fields = ('id', 'nome', 'departamento__nome', 'codigo')
-    list_filter = ('ativo', 'departamento__tipo_municipio', 'departamento')
+    list_filter = ('ativo', 'departamento__tipo_municipio','departamento__administracao')
     
     # Autocomplete para campos ForeignKey
     autocomplete_fields = ['departamento', 'responsavel']
@@ -52,14 +124,27 @@ class SeccoesAdmin(admin.ModelAdmin):
 
 
 @admin.register(Departamento)
-class DepartamentoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'codigo', 'nome', 'tipo_municipio', 'responsavel', 'ativo')
-    search_fields = ('id', 'nome', 'codigo')
-    list_filter = ('ativo', 'tipo_municipio')
-    ordering = ('tipo_municipio', 'nome')
+class DepartamentoAdmin(AdminMultiTenantMixin, admin.ModelAdmin):
+    list_display = ('nome', 'administracao', 'tipo_municipio', 'get_total_seccoes', 'responsavel', 'ativo')
+    search_fields = ('nome', 'codigo', 'administracao__nome')
+    list_filter = ('ativo', 'tipo_municipio', 'administracao__provincia')
+    ordering = ('administracao', 'nome')
     
     # Autocomplete para campos ForeignKey
-    autocomplete_fields = ['responsavel']
+    autocomplete_fields = ['responsavel', 'administracao']
+
+    def get_total_seccoes(self, obj):
+        return obj.seccoes_count
+    get_total_seccoes.short_description = 'Secções'
+    get_total_seccoes.admin_order_field = 'seccoes_count'
+
+    def get_queryset(self, request):
+        """Otimiza a query com anotações de contagem"""
+        from django.db.models import Count
+        qs = super().get_queryset(request)
+        return qs.annotate(
+            seccoes_count=Count('seccoes')
+        )
 
 
 @admin.register(TipoDocumento)
@@ -70,7 +155,7 @@ class TipoDocumentoAdmin(admin.ModelAdmin):
 
 
 @admin.register(Documento)
-class DocumentoAdmin(admin.ModelAdmin):
+class DocumentoAdmin(AdminMultiTenantMixin, admin.ModelAdmin):
     list_display = ('numero_protocolo', 'titulo', 'status', 'prioridade', 'departamento_atual', 'data_criacao')
     list_filter = ('status', 'prioridade', 'tipo_documento', 'departamento_atual')
     search_fields = ('numero_protocolo', 'titulo', 'tags', 'utente', 'conteudo')
@@ -81,7 +166,7 @@ class DocumentoAdmin(admin.ModelAdmin):
 
 
 @admin.register(MovimentacaoDocumento)
-class MovimentacaoDocumentoAdmin(admin.ModelAdmin):
+class MovimentacaoDocumentoAdmin(AdminMultiTenantMixin, admin.ModelAdmin):
     list_display = ('documento', 'tipo_movimentacao', 'departamento_origem', 'departamento_destino', 'data_movimentacao', 'usuario')
     list_filter = ('tipo_movimentacao', 'data_movimentacao', 'confirmado_recebimento')
     search_fields = ('documento__numero_protocolo', 'documento__titulo', 'usuario__username', 'observacoes', 'despacho')
