@@ -25,10 +25,15 @@ DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '192.168.0.213,localhost,127.0.0.1,0.0.0.0,192.168.1.192,sga-c3f2.onrender.com').split(',')
 
 # CSRF Trusted Origins (para Docker/produção)
-CSRF_TRUSTED_ORIGINS = os.environ.get(
-    'CSRF_TRUSTED_ORIGINS', 
-    'http://localhost:8000,http://127.0.0.1:8000,http://192.168.1.192:8000,https://sga-c3f2.onrender.com'
-).split(',')
+# CSRF Trusted Origins (para Docker/produção)
+CSRF_TRUSTED_ORIGINS_ENV = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+CSRF_TRUSTED_ORIGINS_DEFAULT = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://192.168.1.192:8000',
+    'https://sga-c3f2.onrender.com'
+]
+CSRF_TRUSTED_ORIGINS = list(filter(None, set(CSRF_TRUSTED_ORIGINS_ENV + CSRF_TRUSTED_ORIGINS_DEFAULT)))
 
 
 # =============================================================================
