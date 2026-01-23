@@ -83,7 +83,7 @@ def popular_base_de_dados():
             for nome_seccao in lista_seccoes:
                 seccao_obj, s_created = Seccoes.objects.get_or_create(
                     nome=nome_seccao,
-                    Departamento=depto_obj,
+                    departamento=depto_obj,
                     defaults={'ativo': True}
                 )
                 if s_created:
