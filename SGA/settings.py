@@ -27,7 +27,7 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '192.168.0.213,localhost,127.0.0
 # CSRF Trusted Origins (para Docker/produção)
 CSRF_TRUSTED_ORIGINS = os.environ.get(
     'CSRF_TRUSTED_ORIGINS', 
-    'http://localhost:8000,http://127.0.0.1:8000,http://192.168.1.192:8000'
+    'http://localhost:8000,http://127.0.0.1:8000,http://192.168.1.192:8000,https://sga-c3f2.onrender.com'
 ).split(',')
 
 
