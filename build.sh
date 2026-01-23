@@ -3,6 +3,7 @@
 set -o errexit
 
 # Instalar dependências
+pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 
 # Coletar arquivos estáticos
