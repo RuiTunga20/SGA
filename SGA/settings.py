@@ -22,7 +22,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-r#f7)g%=rdp8ld331qv3q
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '192.168.0.213,localhost,127.0.0.1,0.0.0.0,192.168.1.192').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '192.168.0.213,localhost,127.0.0.1,0.0.0.0,192.168.1.192,sga-c3f2.onrender.com').split(',')
 
 # CSRF Trusted Origins (para Docker/produção)
 CSRF_TRUSTED_ORIGINS = os.environ.get(
