@@ -197,6 +197,7 @@ USE_TZ = True
 # =============================================================================
 
 AUTH_USER_MODEL = 'ARQUIVOS.CustomUser'
+LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'Painel/'
 LOGOUT_REDIRECT_URL = '/'
 
