@@ -24,3 +24,6 @@ gunicorn==21.2.0
 # Ambiente
 python-dotenv==1.0.1
 django-redis==5.4.0
+
+# Arquivos Estáticos
+whitenoise[brotli]==6.6.0

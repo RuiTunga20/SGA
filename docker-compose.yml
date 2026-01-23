@@ -4,6 +4,7 @@ services:
   # =====================
   web:
     build: .
+
     container_name: sga_web
     restart: unless-stopped
     ports:
@@ -70,19 +71,17 @@ services:
     #   # O comando acima cria um link temporário (ex: https://random.trycloudflare.com)
     #   # que aponta direto para o seu Django na porta 8000.
     # =====================
-    # Nginx (Opcional - Produção)
-    # =====================
-    # nginx:
-    #   image: nginx:alpine
-    #   container_name: sga_nginx
-    #   ports:
-    #     - "80:80"
-    #   volumes:
-    #     - ./nginx.conf:/etc/nginx/conf.d/default.conf
-    #     - static_volume:/app/staticfiles
-    #     - media_volume:/app/media
-    #   depends_on:
-    #     - web
+  nginx:
+    image: nginx:alpine
+    container_name: sga_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      - web
 
 volumes:
   postgres_data:

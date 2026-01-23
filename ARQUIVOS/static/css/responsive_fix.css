@@ -1,0 +1,27 @@
+/* CORREÇÃO DE RESPONSIVIDADE (Tablet/Mobile) */
+@media (max-width: 992px) {
+
+    /* Ocultar bloco de usuário em telas menores que 992px (Tablets) */
+    .user-info-block {
+        display: none !important;
+    }
+
+    /* Ajustar espaçamento do header */
+    .header-content {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    /* Garantir que o nome do departamento quebre linha corretamente */
+    .dept-header-label {
+        max-width: 100%;
+        white-space: normal;
+        margin-bottom: 0.5rem;
+
+    }
+
+    /* Ajuste do botão hamburger */
+    .hamburger-menu {
+        display: block;
+    }
+}
