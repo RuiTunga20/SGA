@@ -102,6 +102,10 @@ class EncaminharDocumentoForm(forms.ModelForm):
         self.documento = kwargs.pop('documento', None)
         super().__init__(*args, **kwargs)
 
+        # Assign document to instance to avoid RelatedObjectDoesNotExist during clean()
+        if self.documento:
+            self.instance.documento = self.documento
+
         # ========== LÓGICA DE FILTROS BASEADA NO USUÁRIO ==========
 
         if self.user:
