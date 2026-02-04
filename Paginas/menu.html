@@ -26,7 +26,12 @@
                                 <span>{{ user.username }}</span>
                             {% endif %}
                        -
-                         {{ user.administracao.nome }} <br>
+                         {% if user.nivel_acesso == 'admin_sistema' %}
+                            <a href="{% url 'gestao_usuarios' %}" title="Gestão de Usuários" style="text-decoration: underline;">{{ user.administracao.nome }}</a>
+                         {% else %}
+                            {{ user.administracao.nome }}
+                         {% endif %}
+                         <br>
                     
                 </div>
             {% endif %}

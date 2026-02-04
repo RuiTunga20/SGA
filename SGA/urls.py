@@ -5,6 +5,8 @@ from ARQUIVOS import views
 from django.contrib import admin
 from django.conf.urls.static import static
 from django.conf import settings
+from django.urls import re_path
+from django.views.static import serve
 
 app_name = 'documentos'
 
@@ -54,9 +56,15 @@ path('notificacoes/marcar-como-lidas/', views.marcar_notificacoes_como_lidas, na
     path('armazenamentos/', views.listar_armazenamentos, name='listar_armazenamentos'),
     path('documentos/<int:documento_id>/armazenamentos/', views.listar_armazenamentos, name='historico_armazenamento'),
 
+    # Gestão de Usuários (admin_sistema)
+    path('administracao/usuarios/', views.gestao_usuarios, name='gestao_usuarios'),
+    path('ajax/seccoes-departamento/', views.ajax_seccoes_departamento, name='ajax_seccoes_departamento'),
+
 ]
 
-# Servir arquivos media e static em modo de desenvolvimento
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+# Servir arquivos media e static
+# Nota: Habilitado manualmente para funcionar na porta 8000 mesmo com DEBUG=False
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
+]

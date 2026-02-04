@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import (
     CustomUser, Departamento, TipoDocumento, Documento,
     MovimentacaoDocumento, Anexo, ConfiguracaoSistema, Notificacao, Seccoes,
-    LocalArmazenamento, ArmazenamentoDocumento, Administracao
+    LocalArmazenamento, ArmazenamentoDocumento, Administracao, GovernoProvincial, AdministracaoMunicipal
 )
 
 
@@ -60,29 +60,59 @@ class AdminMultiTenantMixin:
 
 @admin.register(Administracao)
 class AdministracaoAdmin(admin.ModelAdmin):
+    # Mantemos este registro GENÉRICO para que o 'autocomplete_fields' funcione
+    # em outros models (Usuario, Departamento) que têm FK para Administracao.
+    list_display = ('nome', 'tipo_municipio', 'provincia')
+    search_fields = ('nome', 'provincia')
+    list_filter = ('tipo_municipio', 'provincia')
+    ordering = ('provincia', 'nome')
+    
+    def has_module_permission(self, request):
+        # Esconde do menu principal para não confundir,
+        # MAS mantém registrado para o autocomplete funcionar!
+        return False
+        
+    def get_queryset(self, request):
+        return super().get_queryset(request).order_by('nome')
+
+@admin.register(GovernoProvincial)
+class GovernoProvincialAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'provincia', 'get_total_departamentos', 'get_total_seccoes')
+    search_fields = ('nome', 'provincia')
+    list_filter = ('provincia',)
+    ordering = ('provincia', 'nome')
+    exclude = ('tipo_municipio',)
+    
+    def get_total_departamentos(self, obj):
+        return Departamento.objects.filter(administracao=obj).count()
+    get_total_departamentos.short_description = 'Gabinetes/Direções'
+
+    def get_total_seccoes(self, obj):
+        return Seccoes.objects.filter(departamento__administracao=obj).count()
+    get_total_seccoes.short_description = 'Departamentos/Secções'
+    
+    def save_model(self, request, obj, form, change):
+        obj.tipo_municipio = 'G' # Garante tipo G
+        super().save_model(request, obj, form, change)
+
+@admin.register(AdministracaoMunicipal)
+class AdministracaoMunicipalAdmin(admin.ModelAdmin):
     list_display = ('nome', 'tipo_municipio', 'provincia', 'get_total_departamentos', 'get_total_seccoes')
     search_fields = ('nome', 'provincia')
     list_filter = ('tipo_municipio', 'provincia')
     ordering = ('provincia', 'nome')
     
     def get_total_departamentos(self, obj):
-        """Retorna o total de departamentos desta administração"""
         return Departamento.objects.filter(administracao=obj).count()
     get_total_departamentos.short_description = 'Departamentos'
-    get_total_departamentos.admin_order_field = 'departamentos_count'
-    
+
     def get_total_seccoes(self, obj):
-        """Retorna o total de secções desta administração"""
         return Seccoes.objects.filter(departamento__administracao=obj).count()
     get_total_seccoes.short_description = 'Secções'
-    
-    def get_queryset(self, request):
-        """Otimiza a query com anotações de contagem"""
-        from django.db.models import Count
-        qs = super().get_queryset(request)
-        return qs.annotate(
-            departamentos_count=Count('departamentos_especificos', distinct=True)
-        )
+
+# Mantemos a administração genérica escondida ou apenas para superusers se necessário, 
+# mas por enquanto vamos remover o registro duplicado da genérica para limpar a view.
+# @admin.register(Administracao) -> REMOVIDO EM FAVOR DOS PROXIES
 
 # Customização da administração de usuários
 @admin.register(CustomUser)

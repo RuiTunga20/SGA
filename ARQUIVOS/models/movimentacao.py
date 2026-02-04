@@ -87,23 +87,50 @@ class MovimentacaoDocumento(models.Model):
                 })
 
         # ===== VALIDAÇÃO DE ISOLAMENTO MULTI-TENANT =====
-        # Garante que origem e destino pertencem à mesma administração do documento
+        # Garante que origem e destino pertencem à mesma administração do documento,
+        # EXCETO: Se for comunicação Governo Provincial <-> Administração Municipal (mesma província)
         
         admin_documento = getattr(self.documento, 'administracao', None) if self.documento else None
         
+        def validar_admin_cruzada(admin_origem, admin_destino):
+            """
+            Retorna True se a comunicação é válida mesmo entre administrações diferentes.
+            Regra: Origem Governo -> Destino Admin (Mesma Prov) OU Origem Admin -> Destino Governo (Mesma Prov)
+            """
+            if not admin_origem or not admin_destino:
+                return False
+                
+            # Verifica se é mesma administração (caso padrão)
+            if admin_origem == admin_destino:
+                return True
+                
+            # Verifica regra de Província
+            if admin_origem.provincia != admin_destino.provincia:
+                return False
+                
+            # Caso 1: Governo -> Municipal
+            if admin_origem.tipo_municipio == 'G' and admin_destino.tipo_municipio != 'G':
+                return True
+                
+            # Caso 2: Municipal -> Governo
+            if admin_origem.tipo_municipio != 'G' and admin_destino.tipo_municipio == 'G':
+                return True
+                
+            return False
+
         # Validar departamento de destino
         if self.departamento_destino and self.departamento_destino.administracao:
-            if admin_documento and self.departamento_destino.administracao != admin_documento:
+            if admin_documento and not validar_admin_cruzada(admin_documento, self.departamento_destino.administracao):
                 raise ValidationError({
-                    'departamento_destino': f'O departamento de destino "{self.departamento_destino.nome}" pertence a outra administração.'
+                    'departamento_destino': f'O departamento de destino "{self.departamento_destino.nome}" pertence a outra administração ({self.departamento_destino.administracao.nome}).'
                 })
         
         # Validar secção de destino (herda administração via departamento)
         if self.seccao_destino:
             admin_seccao = getattr(self.seccao_destino, 'administracao', None)
-            if admin_documento and admin_seccao and admin_seccao != admin_documento:
+            if admin_documento and admin_seccao and not validar_admin_cruzada(admin_documento, admin_seccao):
                 raise ValidationError({
-                    'seccao_destino': f'A secção de destino "{self.seccao_destino.nome}" pertence a outra administração.'
+                    'seccao_destino': f'A secção de destino "{self.seccao_destino.nome}" pertence a outra administração ({admin_seccao.nome}).'
                 })
 
     def save(self, *args, **kwargs):

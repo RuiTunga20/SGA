@@ -27,3 +27,6 @@ django-redis==5.4.0
 
 # Arquivos Estáticos
 whitenoise[brotli]==6.6.0
+
+# PDF Generation
+reportlab==4.1.0

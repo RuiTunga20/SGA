@@ -15,6 +15,8 @@ from django.views.decorators.http import require_http_methods
 from django.db import transaction
 from .formularios import *
 from django.db.models import Count, Case, When, IntegerField
+from django.core.mail import EmailMessage
+from ARQUIVOS.utils import gerar_pdf_despacho
 from django.urls import reverse
 from ARQUIVOS.decorators import requer_contexto_hierarquico
 from django.db.models.functions import TruncDate, Now
@@ -429,6 +431,67 @@ def detalhe_documento(request, documento_id):
             if encaminhar_form.is_valid():
                 try:
                     with transaction.atomic():
+                        # ===== LÓGICA DE TRANSMISSÃO EM MASSA (BROADCAST) DO GOVERNO =====
+                        enviar_todas = encaminhar_form.cleaned_data.get('enviar_todas', False)
+                        is_governo = request.user.administracao and request.user.administracao.tipo_municipio == 'G'
+                        
+                        if enviar_todas and is_governo:
+                             # 1. Obter todas as ADMINISTRAÇÕES da Província (exceto o próprio Governo)
+                             admins_destino = Administracao.objects.filter(
+                                 provincia=request.user.administracao.provincia
+                             ).exclude(tipo_municipio='G')
+                             
+                             if not admins_destino.exists():
+                                 messages.warning(request, "Nenhuma administração encontrada nesta província para enviar.")
+                                 return redirect('detalhe_documento', documento_id=documento.id)
+                                 
+                             # 2. Iterar e criar movimentação para a "Secretaria Geral" de cada uma
+                             contagem_envios = 0
+                             
+                             for admin_dest in admins_destino:
+                                 # Buscar Secretaria Geral desta administração
+                                 sec_geral = Departamento.objects.filter(
+                                     administracao=admin_dest,
+                                     nome__icontains="Secretaria Geral"
+                                 ).first()
+                                 
+                                 if sec_geral:
+                                     nova_mov = MovimentacaoDocumento(
+                                         documento=documento,
+                                         tipo_movimentacao='encaminhamento',
+                                         usuario=request.user,
+                                         departamento_destino=sec_geral,
+                                         seccao_destino=None,
+                                         observacoes=encaminhar_form.cleaned_data.get('observacoes', ''),
+                                         despacho=encaminhar_form.cleaned_data.get('despacho', '')
+                                     )
+                                     
+                                     # Definir Origem
+                                     if user_seccao:
+                                         nova_mov.seccao_origem = user_seccao
+                                         nova_mov.departamento_origem = user_seccao.departamento
+                                     elif user_departamento:
+                                         nova_mov.departamento_origem = user_departamento
+                                         
+                                     nova_mov.save()
+                                     contagem_envios += 1
+                                     
+                                     # Notificação (simplificada para não sobrecarregar)
+                                     # TODO: Implementar notificação assíncrona/Celery para broadcast grande
+                                     
+                             if contagem_envios > 0:
+                                 messages.success(request, f'Documento enviado para {contagem_envios} administrações municipais com sucesso!')
+                                 # Não muda a localização "atual" do documento original do governo,
+                                 # pois ele foi "distribuído". O original fica com o Governo.
+                                 # Mas podemos atualizar status para ENCAMINHAMENTO
+                                 documento.status = StatusDocumento.ENCAMINHAMENTO
+                                 documento.save()
+                             else:
+                                 messages.warning(request, "Não foi possível encontrar as Secretarias Gerais das administrações destino.")
+                                 
+                             return redirect('detalhe_documento', documento_id=documento.id)
+
+                        # ===== FLUXO NORMAL DE ENCAMINHAMENTO (Um destino) =====
                         movimentacao = encaminhar_form.save(commit=False)
                         movimentacao.documento = documento
                         movimentacao.tipo_movimentacao = 'encaminhamento'
@@ -464,11 +527,20 @@ def detalhe_documento(request, documento_id):
                             reverse('detalhe_documento', args=[documento.id])
                         )
                         
-                        # Determinar destinatários (FILTRO POR ADMINISTRAÇÃO)
+                        # Determinar destinatários (FILTRO POR ADMINISTRAÇÃO DO DESTINO)
+                        # IMPORTANTE: Agora o destino pode ser de OUTRA administração (Governo <-> Admin)
+                        # Então devemos filtrar usuários da administração DO DESTINO
+                        
+                        admin_destino_obj = None
+                        if movimentacao.seccao_destino:
+                             admin_destino_obj = movimentacao.seccao_destino.departamento.administracao
+                        elif movimentacao.departamento_destino:
+                             admin_destino_obj = movimentacao.departamento_destino.administracao
+                        
                         if movimentacao.seccao_destino:
                             utilizadores = CustomUser.objects.filter(
                                 seccao=movimentacao.seccao_destino,
-                                administracao=request.user.administracao,
+                                administracao=admin_destino_obj, # Usa a admin do destino!
                                 is_active=True
                             )
                             destino_texto = f"secção {movimentacao.seccao_destino.nome}"
@@ -476,7 +548,7 @@ def detalhe_documento(request, documento_id):
                         elif movimentacao.departamento_destino:
                             utilizadores = CustomUser.objects.filter(
                                 departamento=movimentacao.departamento_destino,
-                                administracao=request.user.administracao,
+                                administracao=admin_destino_obj, # Usa a admin do destino!
                                 is_active=True
                             )
                             destino_texto = f"departamento {movimentacao.departamento_destino.nome}"
@@ -529,11 +601,58 @@ def detalhe_documento(request, documento_id):
 
                 # Atualiza status se fornecido
                 novo_status = despacho_form.cleaned_data.get('novo_status')
+                texto_despacho = despacho_form.cleaned_data['despacho']
+                
                 if novo_status:
                     documento.status = novo_status
+                
+                # --- GERAÇÃO DE PDF E ENVIO DE EMAIL ---
+                try:
+                    # 1. Gerar PDF
+                    pdf_content = gerar_pdf_despacho(documento, texto_despacho, request.user, novo_status)
+                    
+                    # 2. Salvar no campo 'arquivo_digitalizado'
+                    # Nota: Isso sobrescreve o arquivo anterior se existir, conforme solicitado
+                    documento.arquivo_digitalizado.save(pdf_content.name, pdf_content, save=False)
                     documento.save()
+                    
+                    # 3. Enviar Email se o documento tiver email associado
+                    if documento.email:
+                        assunto = f"Notificação de Despacho - Protocolo {documento.numero_protocolo}"
+                        mensagem = f"""
+                        Prezado(a) {documento.utente},
+                        
+                        O seu documento com número de protocolo {documento.numero_protocolo} recebeu um despacho.
+                        
+                        Estado Atual: {documento.get_status_display()}
+                        
+                        Segue em anexo o documento oficial com os detalhes do despacho.
+                        
+                        Atenciosamente,
+                        {request.user.administracao.nome if request.user.administracao else 'Sistema de Gestão de Arquivo'}
+                        """
+                        
+                        email = EmailMessage(
+                            assunto,
+                            mensagem,
+                            None, # De (usará o DEFAULT_FROM_EMAIL)
+                            [documento.email]
+                        )
+                        
+                        # Anexar o PDF gerado (ler do content file)
+                        pdf_content.seek(0)
+                        email.attach(pdf_content.name, pdf_content.read(), 'application/pdf')
+                        email.send(fail_silently=True)
+                        
+                        messages.success(request, f'Despacho registado e notificação enviada para {documento.email}.')
+                    else:
+                        messages.success(request, 'Despacho registado. (Documento sem email para notificação)')
+                        
+                except Exception as e:
+                    # Logar erro mas não impedir o fluxo principal
+                    print(f"Erro ao gerar PDF/Email: {e}")
+                    messages.warning(request, f'Despacho salvo, mas houve erro ao gerar PDF ou enviar email: {e}')
 
-                messages.success(request, 'Despacho adicionado com sucesso!')
                 return redirect('detalhe_documento', documento_id=documento.id)
 
         # === AÇÃO 3: FINALIZAÇÃO (Aprovado/Reprovado/Arquivado) ===
@@ -1419,4 +1538,72 @@ def listar_armazenamentos(request, documento_id=None):
     }
     
     return render(request, 'lista_armazenamentos.html', context)
-# Force reload
+
+
+# ==============================================================================
+#  GESTÃO DE USUÁRIOS (ADMIN_SISTEMA)
+# ==============================================================================
+
+from .formularios import CriarUsuarioAdminForm
+
+@login_required
+def gestao_usuarios(request):
+    """
+    Página para admin_sistema criar e gerir usuários da sua administração.
+    """
+    # Verificar permissão: apenas admin_sistema
+    if request.user.nivel_acesso != 'admin_sistema':
+        messages.error(request, 'Você não tem permissão para acessar esta página.')
+        return redirect('Painel')
+    
+    # Verificar se tem administração associada
+    if not request.user.administracao:
+        messages.error(request, 'Você não está associado a nenhuma administração.')
+        return redirect('Painel')
+    
+    form = CriarUsuarioAdminForm(admin_user=request.user)
+    
+    if request.method == 'POST':
+        form = CriarUsuarioAdminForm(request.POST, admin_user=request.user)
+        if form.is_valid():
+            novo_usuario = form.save()
+            messages.success(
+                request, 
+                f'Usuário "{novo_usuario.username}" criado com sucesso!'
+            )
+            return redirect('gestao_usuarios')
+        else:
+            messages.error(request, 'Erro ao criar usuário. Verifique os dados.')
+    
+    # Listar usuários da mesma administração
+    usuarios = CustomUser.objects.filter(
+        administracao=request.user.administracao
+    ).select_related('departamento', 'seccao').order_by('username')
+    
+    context = {
+        'form': form,
+        'usuarios': usuarios,
+        'administracao': request.user.administracao,
+    }
+    
+    return render(request, 'gestao_usuarios.html', context)
+
+
+@login_required
+def ajax_seccoes_departamento(request):
+    """
+    Retorna as secções de um departamento em JSON.
+    Usado para preencher dinamicamente o select de secções.
+    """
+    departamento_id = request.GET.get('departamento_id')
+    seccoes = []
+    
+    if departamento_id:
+        try:
+            seccoes = list(Seccoes.objects.filter(
+                departamento_id=int(departamento_id)
+            ).values('id', 'nome').order_by('nome'))
+        except (ValueError, TypeError):
+            pass
+    
+    return JsonResponse({'seccoes': seccoes})

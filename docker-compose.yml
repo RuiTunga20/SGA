@@ -10,7 +10,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DEBUG=True
+      - DEBUG=False
       - DATABASE_URL=postgres://sga_user:sga_password@db:5432/sga_db
       - REDIS_URL=redis://redis:6379/0
       - DJANGO_SETTINGS_MODULE=SGA.settings
@@ -24,8 +24,9 @@ services:
       redis:
         condition: service_started
     command: >
-      sh -c "python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+      sh -c "python manage.py collectstatic --no-input &&
+             python manage.py migrate &&
+             daphne -b 0.0.0.0 -p 8000 SGA.asgi:application"
 
   # =====================
   # PostgreSQL Database
@@ -77,7 +78,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx.conf:/etc/nginx/nginx.conf
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     depends_on:
