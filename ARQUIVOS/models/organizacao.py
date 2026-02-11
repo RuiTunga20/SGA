@@ -14,6 +14,7 @@ class Departamento(models.Model):
         ('D', 'Tipo D'),
         ('E', 'Tipo E'),
         ('G', 'Governo Provincial'),
+        ('M', 'Ministério'),
     ]
 
     nome = models.CharField(max_length=255, unique=False)

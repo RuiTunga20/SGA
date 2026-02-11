@@ -1170,6 +1170,32 @@ def confirmar_recebimento(request, movimentacao_id):
                 group_name = f"departamento_{mov.departamento_destino.id}"
                 send_pendencia_update_sync(group_name, f"Documento {doc.numero_protocolo} foi recebido")
 
+            # 3. NOTIFICAR A ORIGEM (REMETENTE) QUE O DOCUMENTO FOI RECEBIDO
+            if mov.usuario:
+                try:
+                    nome_recebedor = user.get_full_name() or user.username
+                    unidade_recebedora = user.seccao.nome if getattr(user, 'seccao', None) else (user.departamento.nome if user.departamento else 'Destino')
+                    
+                    mensagem_confirmacao = f"Seu documento {doc.numero_protocolo} foi recebido por {nome_recebedor} ({unidade_recebedora})."
+                    link_doc = request.build_absolute_uri(reverse('detalhe_documento', args=[doc.id]))
+                    
+                    Notificacao.objects.create(
+                        usuario=mov.usuario,
+                        mensagem=mensagem_confirmacao,
+                        link=link_doc
+                    )
+                    
+                    # Notificação em tempo real (opcional, se o sistema suportar envio direto para user)
+                    try:
+                        # Tenta enviar socket se a função suportar user channel ou se tivermos canal do user
+                        # Assumindo padrão 'user_{id}'
+                        send_notification_sync(f"user_{mov.usuario.id}", mensagem_confirmacao, link_doc)
+                    except:
+                        pass # Ignora erro de socket para não quebrar o request
+                        
+                except Exception as e:
+                    print(f"Erro ao criar notificação de confirmação: {e}")
+
             messages.success(request, f'Recebimento do documento {doc.numero_protocolo} confirmado!')
         else:
             messages.error(request, 'Você não tem permissão para confirmar este recebimento.')

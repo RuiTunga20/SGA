@@ -95,7 +95,9 @@ class MovimentacaoDocumento(models.Model):
         def validar_admin_cruzada(admin_origem, admin_destino):
             """
             Retorna True se a comunicação é válida mesmo entre administrações diferentes.
-            Regra: Origem Governo -> Destino Admin (Mesma Prov) OU Origem Admin -> Destino Governo (Mesma Prov)
+            Regras:
+              - Ministério (M) <-> Governo Provincial (G): Sempre permitido (sem restrição de província)
+              - Governo (G) <-> Municipal (A-E): Apenas se mesma província
             """
             if not admin_origem or not admin_destino:
                 return False
@@ -103,17 +105,25 @@ class MovimentacaoDocumento(models.Model):
             # Verifica se é mesma administração (caso padrão)
             if admin_origem == admin_destino:
                 return True
+            
+            # Caso 1: Ministério -> Governo (qualquer província)
+            if admin_origem.tipo_municipio == 'M' and admin_destino.tipo_municipio == 'G':
+                return True
                 
-            # Verifica regra de Província
+            # Caso 2: Governo -> Ministério (qualquer província)
+            if admin_origem.tipo_municipio == 'G' and admin_destino.tipo_municipio == 'M':
+                return True
+                
+            # --- Regras que exigem mesma província ---
             if admin_origem.provincia != admin_destino.provincia:
                 return False
                 
-            # Caso 1: Governo -> Municipal
-            if admin_origem.tipo_municipio == 'G' and admin_destino.tipo_municipio != 'G':
+            # Caso 3: Governo -> Municipal (mesma província)
+            if admin_origem.tipo_municipio == 'G' and admin_destino.tipo_municipio not in ('G', 'M'):
                 return True
                 
-            # Caso 2: Municipal -> Governo
-            if admin_origem.tipo_municipio != 'G' and admin_destino.tipo_municipio == 'G':
+            # Caso 4: Municipal -> Governo (mesma província)
+            if admin_origem.tipo_municipio not in ('G', 'M') and admin_destino.tipo_municipio == 'G':
                 return True
                 
             return False

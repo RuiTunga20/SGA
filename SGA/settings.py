@@ -20,9 +20,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-r#f7)g%=rdp8ld331qv3q5-43qlivp_@^)r0tk8o!7ar3=_710')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
+DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '192.168.0.213,localhost,127.0.0.1,0.0.0.0,192.168.1.192,sga-c3f2.onrender.com').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '192.168.0.213,localhost,127.0.0.1,0.0.0.0,192.168.1.191,192.168.1.192,sga-c3f2.onrender.com').split(',')
 
 # CSRF Trusted Origins (para Docker/produção)
 # CSRF Trusted Origins (para Docker/produção)
@@ -30,6 +30,9 @@ CSRF_TRUSTED_ORIGINS_ENV = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
 CSRF_TRUSTED_ORIGINS_DEFAULT = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
+    'http://192.168.1.191',
+    'http://192.168.1.191:8000',
+    'http://192.168.1.192',
     'http://192.168.1.192:8000',
     'https://sga-c3f2.onrender.com'
 ]
@@ -98,7 +101,11 @@ ASGI_APPLICATION = 'SGA.asgi.application'
 # =============================================================================
 
 # Redis URL para Channel Layer
-REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://red-d65mrnp4tr6s73d5gk80:6379')
+if REDIS_URL:
+    REDIS_URL = os.environ.get('REDIS_URL', 'redis://red-d65mrnp4tr6s73d5gk80:6379')
+else:
+    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
 
 CHANNEL_LAYERS = {
     'default': {
@@ -218,7 +225,8 @@ STATICFILES_DIRS = [
 ]
 
 # WhiteNoise: Compressão e Cache de Arquivos Estáticos
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+WHITENOISE_USE_FINDERS = True       # Ajuda a encontrar arquivos em desenvolvimento
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'

@@ -11,6 +11,7 @@ class Administracao(models.Model):
         ('D', 'Tipo D'),
         ('E', 'Tipo E'),
         ('G', 'Governo Provincial'),
+        ('M', 'Ministério'),
     ]
     nome = models.CharField(max_length=255)
     tipo_municipio = models.CharField(max_length=1, choices=TIPO_MUNICIPIO_CHOICES, default='A')
@@ -27,7 +28,11 @@ class Administracao(models.Model):
             
     class MunicipalManager(models.Manager):
         def get_queryset(self):
-            return super().get_queryset().exclude(tipo_municipio='G')
+            return super().get_queryset().exclude(tipo_municipio__in=['G', 'M'])
+    
+    class MinisterioManager(models.Manager):
+        def get_queryset(self):
+            return super().get_queryset().filter(tipo_municipio='M')
 
     class Meta:
         verbose_name = "Administração"
@@ -46,6 +51,13 @@ class AdministracaoMunicipal(Administracao):
         proxy = True
         verbose_name = "Administração Municipal"
         verbose_name_plural = "Administrações Municipais" 
+
+class Ministerio(Administracao):
+    objects = Administracao.MinisterioManager()
+    class Meta:
+        proxy = True
+        verbose_name = "Ministério"
+        verbose_name_plural = "Ministérios"
 
 class CustomUser(AbstractUser):
     objects = UsuarioManager()

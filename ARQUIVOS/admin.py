@@ -3,7 +3,8 @@ from django.contrib.auth.admin import UserAdmin
 from .models import (
     CustomUser, Departamento, TipoDocumento, Documento,
     MovimentacaoDocumento, Anexo, ConfiguracaoSistema, Notificacao, Seccoes,
-    LocalArmazenamento, ArmazenamentoDocumento, Administracao, GovernoProvincial, AdministracaoMunicipal
+    LocalArmazenamento, ArmazenamentoDocumento, Administracao, GovernoProvincial, AdministracaoMunicipal,
+    Ministerio
 )
 
 
@@ -109,6 +110,26 @@ class AdministracaoMunicipalAdmin(admin.ModelAdmin):
     def get_total_seccoes(self, obj):
         return Seccoes.objects.filter(departamento__administracao=obj).count()
     get_total_seccoes.short_description = 'Secções'
+
+@admin.register(Ministerio)
+class MinisterioAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'tipo_municipio', 'provincia', 'get_total_departamentos', 'get_total_seccoes')
+    search_fields = ('nome', 'provincia')
+    ordering = ('nome',)
+    exclude = ('tipo_municipio', 'provincia')
+    
+    def get_total_departamentos(self, obj):
+        return Departamento.objects.filter(administracao=obj).count()
+    get_total_departamentos.short_description = 'Direcções Nacionais/Gabinetes'
+
+    def get_total_seccoes(self, obj):
+        return Seccoes.objects.filter(departamento__administracao=obj).count()
+    get_total_seccoes.short_description = 'Departamentos/Secções'
+    
+    def save_model(self, request, obj, form, change):
+        obj.tipo_municipio = 'M' # Garante tipo M
+        obj.provincia = 'Luanda' # MAT fica em Luanda por padrão
+        super().save_model(request, obj, form, change)
 
 # Mantemos a administração genérica escondida ou apenas para superusers se necessário, 
 # mas por enquanto vamos remover o registro duplicado da genérica para limpar a view.

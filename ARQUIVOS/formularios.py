@@ -130,30 +130,50 @@ class EncaminharDocumentoForm(forms.ModelForm):
             
             if administracao_usuario:
                 # ---------------------------------------------------------
+                # LÓGICA ESPECIAL: Ministério (MAT)
+                # ---------------------------------------------------------
+                if administracao_usuario.tipo_municipio == 'M':
+                    # Vê Departamentos internos do MAT
+                    # E TAMBÉM "Secretaria Geral" de TODOS os Governos Provinciais
+                    governos_ids = Administracao.objects.filter(
+                        tipo_municipio='G'
+                    ).values_list('id', flat=True)
+                    
+                    self.fields['departamento_destino'].queryset = Departamento.objects.filter(
+                        Q(administracao=administracao_usuario) |
+                        Q(administracao_id__in=governos_ids, nome__icontains="Secretaria Geral")
+                    ).distinct().order_by('administracao__nome', 'nome')
+                    
+                    self.fields['departamento_destino'].label = "Destino (Interno ou Governo Provincial)"
+                
+                # ---------------------------------------------------------
                 # LÓGICA ESPECIAL: Governo Provincial
                 # ---------------------------------------------------------
-                if administracao_usuario.tipo_municipio == 'G':
+                elif administracao_usuario.tipo_municipio == 'G':
                     # Vê Departamentos da própria admin (Governo)
                     # E TAMBÉM "Secretaria Geral" das Administrações MUNICIPAIS da mesma província
-                    # Usar Q objects ao invés de union para melhor performance
+                    # E TAMBÉM "Secretaria Geral" do MAT
                     admins_municipais = Administracao.objects.filter(
                         provincia=administracao_usuario.provincia
-                    ).exclude(tipo_municipio='G').values_list('id', flat=True)
+                    ).exclude(tipo_municipio__in=['G', 'M']).values_list('id', flat=True)
+                    
+                    mat_ids = Administracao.objects.filter(
+                        tipo_municipio='M'
+                    ).values_list('id', flat=True)
                     
                     self.fields['departamento_destino'].queryset = Departamento.objects.filter(
                         Q(tipo_municipio=administracao_usuario.tipo_municipio, administracao__isnull=True) |
                         Q(administracao=administracao_usuario) |
-                        Q(administracao_id__in=admins_municipais, nome__icontains="Secretaria Geral")
+                        Q(administracao_id__in=admins_municipais, nome__icontains="Secretaria Geral") |
+                        Q(administracao_id__in=mat_ids, nome__icontains="Secretaria Geral")
                     ).distinct().order_by('administracao__nome', 'nome')
                     
-                    # Secções: Mantém regra padrão (só do dept selecionado via AJAX ou do próprio se for secção)
-                    # + Adicionar opção visual para BROADCAST (campo extra no form field choices ou tratado no template)
-                    self.fields['departamento_destino'].label = "Destino (Interno ou Municipal)"
+                    self.fields['departamento_destino'].label = "Destino (Interno, Municipal ou MAT)"
                 
                 # ---------------------------------------------------------
                 # LÓGICA ESPECIAL: Administração Municipal (Secretaria Geral)
                 # ---------------------------------------------------------
-                elif hasattr(self.user, 'departamento') and "Secretaria Geral" in self.user.departamento.nome:
+                elif hasattr(self.user, 'departamento') and self.user.departamento and "Secretaria Geral" in self.user.departamento.nome:
                      # Vê Departamentos da própria admin
                     qs_dept = Departamento.objects.para_administracao(administracao_usuario)
                     
@@ -258,27 +278,48 @@ class EncaminharDocumentoForm(forms.ModelForm):
                 dept_usuario = self.user.departamento
                 admin_usuario = self.user.administracao
                 
-                # REGRA ESPECIAL: Governo Provincial pode enviar para Secretaria Geral de Administrações
-                if admin_usuario and admin_usuario.tipo_municipio == 'G':
-                    # Governo pode enviar para: próprio governo OU Secretaria Geral de admins municipais
+                # REGRA ESPECIAL: Ministério (MAT) pode enviar para Secretaria Geral de Governos
+                if admin_usuario and admin_usuario.tipo_municipio == 'M':
                     if dept_destino.administracao != admin_usuario:
-                        # É envio para outra administração - VERIFICAR se é Secretaria Geral
+                        # É envio para outra administração - VERIFICAR se é Secretaria Geral de Governo
+                        if not dept_destino.administracao or dept_destino.administracao.tipo_municipio != 'G':
+                            raise ValidationError(
+                                'O Ministério só pode enviar para a "Secretaria Geral" dos Governos Provinciais.'
+                            )
                         if "Secretaria Geral" not in dept_destino.nome:
                             raise ValidationError(
-                                'O Governo Provincial só pode enviar para a "Secretaria Geral" das administrações municipais.'
+                                'Só pode enviar para a "Secretaria Geral" do Governo Provincial.'
                             )
-                    # Não pode encaminhar para si mesmo
                     elif dept_destino.id == dept_usuario.id:
                         raise ValidationError(
                             'Você não pode encaminhar para o seu próprio departamento.'
                         )
                 
-                # REGRA ESPECIAL: Secretaria Geral pode enviar para Governo Provincial
-                elif admin_usuario and "Secretaria Geral" in dept_usuario.nome:
-                    # Secretaria Geral pode enviar para: própria admin OU Secretaria Geral do Governo
+                # REGRA ESPECIAL: Governo Provincial pode enviar para Secretaria Geral de Administrações e MAT
+                elif admin_usuario and admin_usuario.tipo_municipio == 'G':
                     if dept_destino.administracao != admin_usuario:
-                        # É envio para outra administração - VERIFICAR se é Governo Provincial
-                        if dept_destino.administracao and dept_destino.administracao.tipo_municipio != 'G':
+                        # É envio para outra administração
+                        dest_tipo = dept_destino.administracao.tipo_municipio if dept_destino.administracao else None
+                        # Pode enviar para Municipal (mesma prov) ou MAT
+                        if dest_tipo not in ('A', 'B', 'C', 'D', 'E', 'M'):
+                            raise ValidationError(
+                                'O Governo Provincial só pode enviar para administrações municipais ou para o Ministério.'
+                            )
+                        if "Secretaria Geral" not in dept_destino.nome:
+                            raise ValidationError(
+                                'Só pode enviar para a "Secretaria Geral" da administração de destino.'
+                            )
+                    elif dept_destino.id == dept_usuario.id:
+                        raise ValidationError(
+                            'Você não pode encaminhar para o seu próprio departamento.'
+                        )
+                
+                # REGRA ESPECIAL: Secretaria Geral pode enviar para Governo Provincial ou MAT
+                elif admin_usuario and "Secretaria Geral" in dept_usuario.nome:
+                    if dept_destino.administracao != admin_usuario:
+                        dest_tipo = dept_destino.administracao.tipo_municipio if dept_destino.administracao else None
+                        # Secretaria Geral de Municipal pode enviar para Governo
+                        if dest_tipo not in ('G',):
                             raise ValidationError(
                                 'A Secretaria Geral só pode enviar para o Governo Provincial.'
                             )
@@ -286,7 +327,6 @@ class EncaminharDocumentoForm(forms.ModelForm):
                             raise ValidationError(
                                 'Só pode enviar para a "Secretaria Geral" do Governo Provincial.'
                             )
-                    # Não pode encaminhar para si mesmo
                     elif dept_destino.id == dept_usuario.id:
                         raise ValidationError(
                             'Você não pode encaminhar para o seu próprio departamento.'
