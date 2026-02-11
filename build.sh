@@ -30,6 +30,12 @@ python adicionar_adjuntos_tipo_c.py
 python adicionar_adjuntos_tipo_d.py
 python adicionar_adjuntos_tipo_e.py
 
-echo "--- Criando Usuário Padrão ---"
+echo "--- Criando Usuário Padrão (Gestão) ---"
 python manage.py populate_default_user
+
+echo "--- Criando Usuários Padrão das Administrações (Aduige/Govuige) ---"
+python criar_usuarios_padrao.py
+
+echo "--- Criando Super Admin MAT ---"
+python create_super_mat.py
 
