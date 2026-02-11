@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Usuários - {{ administracao.nome }}</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+        --primary-orange: red;
+        --text-grey: #5a5a5a;
+        --text-grey-dark: #333333;
+        --primary-red: #c8102e;
+        --accent-gold: #daa520;
+        --bg-primary: #f4f4f4;
+        --bg-secondary: #ffffff;
+        --border: #cccccc;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+    }
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        background: var(--bg-primary);
+        color: #333;
+        line-height: 1.6;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    .page-header {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .page-header h1 { color: var(--primary-red); font-size: 1.5rem; }
+    .page-header span { color: var(--text-grey); font-size: 0.9rem; }
+    
+    .grid-container { display: grid; grid-template-columns: 1fr 1.5fr; gap: 2rem; }
+    
+    .form-container, .users-container {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 2rem;
+        box-shadow: var(--shadow);
+    }
+    .form-container h3, .users-container h3 {
+        margin-bottom: 1.5rem;
+        color: var(--primary-red);
+        font-size: 1.1rem;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 1rem;
+    }
+    .form-group { margin-bottom: 1rem; }
+    .form-label { display: block; font-weight: bold; font-size: 0.85rem; margin-bottom: 0.3rem; }
+    .form-control, .form-select {
+        width: 100%;
+        padding: 0.6rem 0.8rem;
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        font-size: 0.95rem;
+    }
+    .form-control:focus, .form-select:focus {
+        outline: none;
+        border-color: var(--accent-gold);
+        box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .btn-submit {
+        background: var(--primary-red);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 3px;
+        font-weight: bold;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 1rem;
+    }
+    .btn-submit:hover { opacity: 0.9; }
+    
+    /* Tabela de Usuários */
+    .users-table { width: 100%; border-collapse: collapse; }
+    .users-table th, .users-table td {
+        text-align: left;
+        padding: 0.75rem;
+        border-bottom: 1px solid #eee;
+        font-size: 0.9rem;
+    }
+    .users-table th { background: #f9f9f9; font-weight: bold; }
+    .users-table tr:hover { background: #fafafa; }
+    .badge {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+    .badge-admin { background: #dc3545; color: white; }
+    .badge-diretor { background: #fd7e14; color: white; }
+    .badge-tecnico { background: #17a2b8; color: white; }
+    .badge-default { background: #6c757d; color: white; }
+    
+    .error-list { color: #dc3545; font-size: 0.85rem; margin-top: 0.25rem; }
+    
+    @media (max-width: 992px) {
+        .grid-container { grid-template-columns: 1fr; }
+        .form-row { grid-template-columns: 1fr; }
+    }
+</style>
+</head>
+<body>
+    {% include "menu.html" %}
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Gestão de Usuários</h1>
+            <span>{{ administracao.nome }} | {{ usuarios.count }} usuários</span>
+        </div>
+
+        <div class="grid-container">
+            <!-- Formulário de Criação -->
+            <div class="form-container">
+                <h3>➕ Adicionar Novo Usuário</h3>
+                <form method="post" id="formCriarUsuario">
+                    {% csrf_token %}
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Nome de Usuário *</label>
+                            {{ form.username }}
+                            {% if form.username.errors %}<div class="error-list">{{ form.username.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email *</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}<div class="error-list">{{ form.email.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Nome *</label>
+                            {{ form.first_name }}
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Sobrenome *</label>
+                            {{ form.last_name }}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Telefone</label>
+                        {{ form.telefone }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Departamento *</label>
+                        {{ form.departamento }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Secção (Opcional)</label>
+                        {{ form.seccao }}
+                        <small style="color: #666;">Será carregado após selecionar o departamento</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Nível de Acesso *</label>
+                        {{ form.nivel_acesso }}
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Senha *</label>
+                            {{ form.password1 }}
+                            {% if form.password1.errors %}<div class="error-list">{{ form.password1.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Confirmar Senha *</label>
+                            {{ form.password2 }}
+                            {% if form.password2.errors %}<div class="error-list">{{ form.password2.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Criar Usuário</button>
+                </form>
+            </div>
+
+            <!-- Lista de Usuários -->
+            <div class="users-container">
+                <h3>👥 Usuários da Administração</h3>
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Usuário</th>
+                            <th>Nome</th>
+                            <th>Departamento</th>
+                            <th>Nível</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in usuarios %}
+                        <tr>
+                            <td>{{ u.username }}</td>
+                            <td>{{ u.first_name }} {{ u.last_name }}</td>
+                            <td>
+                                {{ u.departamento.nome|default:"-" }}
+                                {% if u.seccao %}<br><small>→ {{ u.seccao.nome }}</small>{% endif %}
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if 'admin' in u.nivel_acesso %}badge-admin
+                                    {% elif 'diretor' in u.nivel_acesso %}badge-diretor
+                                    {% elif 'tecnico' in u.nivel_acesso %}badge-tecnico
+                                    {% else %}badge-default{% endif %}">
+                                    {{ u.get_nivel_acesso_display|default:u.nivel_acesso }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" style="text-align: center; padding: 2rem;">Nenhum usuário encontrado</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Select2 CSS e JS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <style>
+        /* Estilos customizados para Select2 */
+        .select2-container--default .select2-selection--single {
+            height: 42px;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 24px;
+            color: var(--text-grey-dark);
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
+        }
+        .select2-dropdown {
+            border: 1px solid var(--border);
+            border-radius: 3px;
+        }
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 0.5rem;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: var(--accent-gold);
+        }
+        .select2-container {
+            width: 100% !important;
+        }
+    </style>
+
+    <script>
+        $(document).ready(function() {
+            // Inicializar Select2
+            $('#id_departamento').select2({
+                placeholder: 'Selecione um departamento',
+                allowClear: true,
+                language: {
+                    noResults: function() { return "Nenhum resultado encontrado"; },
+                    searching: function() { return "Pesquisando..."; }
+                }
+            });
+
+            $('#id_seccao').select2({
+                placeholder: 'Selecione uma secção',
+                allowClear: true,
+                language: {
+                    noResults: function() { return "Nenhum resultado encontrado"; },
+                    searching: function() { return "Pesquisando..."; }
+                }
+            });
+
+            // Carregar secções automaticamente ao mudar departamento
+            $('#id_departamento').on('change', function() {
+                const deptId = $(this).val();
+                const seccaoSelect = $('#id_seccao');
+                
+                // Limpar secções e resetar Select2
+                seccaoSelect.empty().append('<option value="">---------</option>');
+                
+                if (deptId) {
+                    // Mostrar loading visual se necessário ou apenas aguardar
+                    
+                    fetch(`/ajax/seccoes-departamento/?departamento_id=${deptId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            data.seccoes.forEach(sec => {
+                                const newOption = new Option(sec.nome, sec.id, false, false);
+                                seccaoSelect.append(newOption);
+                            });
+                            seccaoSelect.trigger('change'); // Atualizar Select2
+                        })
+                        .catch(err => console.error('Erro ao carregar secções:', err));
+                } else {
+                    seccaoSelect.trigger('change');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

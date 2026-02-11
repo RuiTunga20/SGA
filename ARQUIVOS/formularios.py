@@ -219,7 +219,9 @@ class EncaminharDocumentoForm(forms.ModelForm):
 
                         # Secções: Vê TODAS as secções do departamento selecionado (via AJAX)
                         # Inicialmente vazio ou filtrado se houver dados POST
-                        self.fields['seccao_destino'].queryset = Seccoes.objects.none()
+                        self.fields['seccao_destino'].queryset = Seccoes.objects.filter(
+                            departamento=self.user.departamento
+                        ).order_by('nome')
 
                     self.fields['departamento_destino'].label = "Encaminhar para Departamento"
                     self.fields['seccao_destino'].label = "Ou para Secção (Interno)"

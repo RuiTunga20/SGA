@@ -398,29 +398,36 @@
             });
 
             // Lógica AJAX para carregar secções ao selecionar departamento
-            $('select[name="departamento_destino"]').on('change', function() {
-                var deptId = $(this).val();
-                var seccaoSelect = $('select[name="seccao_destino"]');
-                
-                // Limpar secções atuais
-                seccaoSelect.empty().append('<option value="">---------</option>');
-                
-                if (deptId) {
-                    // Carregar secções via AJAX (Endpoint JSON)
-                    fetch(`/ajax/seccoes-departamento/?departamento_id=${deptId}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            data.seccoes.forEach(sec => {
-                                var newOption = new Option(sec.nome, sec.id, false, false);
-                                seccaoSelect.append(newOption);
-                            });
-                            seccaoSelect.trigger('change'); // Notificar Select2 da mudança
-                        })
-                        .catch(err => console.error('Erro ao carregar secções:', err));
-                } else {
-                    seccaoSelect.trigger('change');
-                }
-            });
+            // APENAS PARA ADMINISTRAÇÃO DO SISTEMA (que pode ver tudo)
+            // Usuários comuns (Departamentos/Secções) têm listas fixas/filtradas no backend
+            // e NÃO devem ter suas secções apagadas ao mudar o departamento de destino.
+            var userLevel = "{{ request.user.nivel_acesso }}";
+            
+            if (userLevel === 'admin_sistema') {
+                $('select[name="departamento_destino"]').on('change', function() {
+                    var deptId = $(this).val();
+                    var seccaoSelect = $('select[name="seccao_destino"]');
+                    
+                    // Limpar secções atuais
+                    seccaoSelect.empty().append('<option value="">---------</option>');
+                    
+                    if (deptId) {
+                        // Carregar secções via AJAX (Endpoint JSON)
+                        fetch(`/ajax/seccoes-departamento/?departamento_id=${deptId}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                data.seccoes.forEach(sec => {
+                                    var newOption = new Option(sec.nome, sec.id, false, false);
+                                    seccaoSelect.append(newOption);
+                                });
+                                seccaoSelect.trigger('change'); // Notificar Select2 da mudança
+                            })
+                            .catch(err => console.error('Erro ao carregar secções:', err));
+                    } else {
+                        seccaoSelect.trigger('change');
+                    }
+                });
+            }
 
             // Trigger inicial caso já tenha valor (ex: reenvio de form com erro)
             var initialDept = $('select[name="departamento_destino"]').val();
