@@ -101,44 +101,24 @@ ASGI_APPLICATION = 'SGA.asgi.application'
 # =============================================================================
 
 # Redis URL para Channel Layer
-REDIS_URL = os.environ.get('REDIS_URL', 'redis://red-d65mrnp4tr6s73d5gk80:6379')
-if REDIS_URL:
-    REDIS_URL = os.environ.get('REDIS_URL', 'redis://red-d65mrnp4tr6s73d5gk80:6379')
-else:
-    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+
 
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [REDIS_URL],
-            'capacity': 1500,
-            'expiry': 10,
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            # Passa a URL completa, que o channels_redis/redis-py saberá interpretar
+            "hosts": ["redis://red-d65mrnp4tr6s73d5gk80:6379",]
         },
     },
 }
 
 # Fallback para desenvolvimento sem Redis
-if os.environ.get('USE_MEMORY_CHANNELS', 'False').lower() == 'true':
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels.layers.InMemoryChannelLayer',
-        },
-    }
 
 # =============================================================================
 # CACHE CONFIGURATION
 # =============================================================================
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
-    }
-}
 
 
 # =============================================================================
