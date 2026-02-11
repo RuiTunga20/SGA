@@ -72,12 +72,187 @@ class DocumentoForm(forms.ModelForm):
         }
 
 
+"""
+EncaminharDocumentoForm — CORRIGIDO: Secções no Cenário B
+===========================================================
+PROBLEMA IDENTIFICADO:
+  No Cenário B (usuário em departamento), as secções devem ser:
+  - SEMPRE do departamento do USUÁRIO (não do dept selecionado)
+  - Permite encaminhar para uma secção específica interna
+  
+SOLUÇÃO:
+  - Cenário A: secções mudam conforme dept selecionado (é o dept pai fixo)
+  - Cenário B: secções FIXAS (do dept do usuário), independente da seleção
+"""
+
+from django import forms
+from django.core.exceptions import ValidationError
+from django.db.models import Q
+import json
+
+from .models import (
+    Administracao,
+    CustomUser,
+    Departamento,
+    MovimentacaoDocumento,
+    Seccoes,
+    StatusDocumento,
+)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _is_secretaria_geral(departamento) -> bool:
+    """Verifica se um departamento é Secretaria Geral."""
+    if not departamento:
+        return False
+    return "secretaria geral" in departamento.nome.lower()
+
+
+def _get_contexto_usuario(user):
+    """Retorna o contexto resolvido do usuário."""
+    admin = getattr(user, 'administracao', None)
+    dept = getattr(user, 'departamento_efetivo', None)
+    seccao = getattr(user, 'seccao', None)
+    
+    if seccao and not seccao.pk:
+        seccao = None
+    
+    return {
+        'admin': admin,
+        'dept': dept,
+        'seccao': seccao,
+        'em_seccao': seccao is not None,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Lógica central de hierarquia
+# ---------------------------------------------------------------------------
+
+def _calcular_destinos_permitidos(user):
+    """
+    Calcula os querysets de departamentos e secções permitidos.
+    
+    Returns:
+        tuple(QuerySet[Departamento], QuerySet[Seccoes], bool)
+        - QuerySet de departamentos
+        - QuerySet de secções
+        - bool: True se secções são FIXAS (Cenário B), False se dependem do dept selecionado (Cenário A)
+    """
+    ctx = _get_contexto_usuario(user)
+    admin   = ctx['admin']
+    dept    = ctx['dept']
+    seccao  = ctx['seccao']
+    em_seccao = ctx['em_seccao']
+
+    # Superuser sem administração
+    if not admin:
+        if user.is_superuser:
+            return (
+                Departamento.objects.all().order_by('administracao__nome', 'nome'),
+                Seccoes.objects.all().order_by('departamento__nome', 'nome'),
+                False  # Superuser: secções dinâmicas
+            )
+        return Departamento.objects.none(), Seccoes.objects.none(), False
+
+    # =========================================================================
+    # PARTE 1: Calcular queryset BASE de departamentos (hierarquia MAT/GOV/Municipal)
+    # =========================================================================
+
+    # MAT (Ministério)
+    if admin.tipo_municipio == 'M':
+        governos_ids = Administracao.objects.filter(
+            tipo_municipio='G'
+        ).values_list('id', flat=True)
+
+        qs_dept_base = Departamento.objects.filter(
+            Q(administracao=admin) |
+            Q(administracao_id__in=governos_ids, nome__icontains='Secretaria Geral')
+        ).distinct()
+
+    # Governo Provincial
+    elif admin.tipo_municipio == 'G':
+        admins_municipais_ids = Administracao.objects.filter(
+            provincia=admin.provincia
+        ).exclude(tipo_municipio__in=['G', 'M']).values_list('id', flat=True)
+
+        mat_ids = Administracao.objects.filter(
+            tipo_municipio='M'
+        ).values_list('id', flat=True)
+
+        qs_dept_base = Departamento.objects.filter(
+            Q(administracao=admin) |
+            Q(administracao_id__in=admins_municipais_ids, nome__icontains='Secretaria Geral') |
+            Q(administracao_id__in=mat_ids, nome__icontains='Secretaria Geral')
+        ).distinct()
+
+    # Secretaria Geral de Municipal
+    elif _is_secretaria_geral(dept):
+        governo_prov = Administracao.objects.filter(
+            provincia=admin.provincia,
+            tipo_municipio='G',
+        ).first()
+
+        qs_dept_base = Departamento.objects.filter(
+            Q(administracao=admin) |
+            (Q(administracao=governo_prov, nome__icontains='Secretaria Geral') if governo_prov else Q(pk__in=[]))
+        ).distinct()
+
+    # Padrão
+    else:
+        qs_dept_base = Departamento.objects.para_administracao(admin)
+
+    # =========================================================================
+    # PARTE 2: Aplicar restrições por cenário
+    # =========================================================================
+
+    if em_seccao:
+        # -----------------------------------------------------------------
+        # CENÁRIO A: Usuário em Secção
+        # - Dept disponível: APENAS o dept pai
+        # - Secções disponíveis: todas do mesmo dept, exceto a própria
+        # - Secções são DINÂMICAS: filtradas pelo dept selecionado (que é único)
+        # -----------------------------------------------------------------
+        qs_dept_final = qs_dept_base.filter(pk=dept.pk) if dept else Departamento.objects.none()
+        
+        qs_sec_final = Seccoes.objects.filter(
+            departamento=dept,
+        ).exclude(
+            pk=seccao.pk,
+        ).order_by('nome') if dept else Seccoes.objects.none()
+        
+        seccoes_fixas = False  # Secções mudam com the dept (mas dept é único, então na prática são fixas)
+
+    else:
+        # -----------------------------------------------------------------
+        # CENÁRIO B: Usuário em Departamento
+        # - Dept disponível: todos do base, exceto o próprio
+        # - Secções disponíveis: SEMPRE as secções do departamento DO USUÁRIO
+        # - Secções são FIXAS: independem do dept selecionado no select
+        # -----------------------------------------------------------------
+        qs_dept_final = qs_dept_base.exclude(
+            pk=dept.pk if dept else -1
+        ).order_by('administracao__nome', 'nome')
+        
+        # CORREÇÃO CRÍTICA: Secções do departamento DO USUÁRIO, não do selecionado
+        qs_sec_final = Seccoes.objects.filter(
+            departamento=dept,
+            departamento__administracao=admin,
+        ).order_by('nome') if dept else Seccoes.objects.none()
+        
+        seccoes_fixas = True  # Secções não mudam ao selecionar dept
+
+    return qs_dept_final, qs_sec_final, seccoes_fixas
+
+
+# ---------------------------------------------------------------------------
+# Formulário
+# ---------------------------------------------------------------------------
+
 class EncaminharDocumentoForm(forms.ModelForm):
-    enviar_todas = forms.BooleanField(
-        required=False, 
-        label="Enviar para TODAS as Administrações da Província",
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
-    )
 
     class Meta:
         model = MovimentacaoDocumento
@@ -86,291 +261,129 @@ class EncaminharDocumentoForm(forms.ModelForm):
             'departamento_destino',
             'seccao_destino',
             'observacoes',
-            'despacho'
+            'despacho',
         ]
         widgets = {
             'observacoes': forms.Textarea(attrs={
                 'rows': 3,
                 'class': 'form-control',
-                'placeholder': 'Observações sobre o encaminhamento...'
+                'placeholder': 'Observações sobre o encaminhamento...',
             }),
             'despacho': forms.Textarea(attrs={
                 'rows': 4,
                 'class': 'form-control',
-                'placeholder': 'Despacho ou instruções...'
+                'placeholder': 'Despacho ou instruções...',
             }),
             'tipo_movimentacao': forms.Select(attrs={'class': 'form-control'}),
-            'departamento_destino': forms.Select(attrs={'class': 'form-control'}),
-            'seccao_destino': forms.Select(attrs={'class': 'form-control'}),
+            'departamento_destino': forms.Select(attrs={
+                'class': 'form-control',
+                'data-exclusivo': 'seccao_destino'
+            }),
+            'seccao_destino': forms.Select(attrs={
+                'class': 'form-control',
+                'data-exclusivo': 'departamento_destino'
+            }),
         }
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
+        self.user      = kwargs.pop('user', None)
         self.documento = kwargs.pop('documento', None)
-        super().__init__(*args, **kwargs)
-        
-        # Reescrever as opções do select de tipo de movimentação
-        # REQ: Apenas "Criar" e "Encaminhar"
-        self.fields['tipo_movimentacao'].choices = [
-            ('criacao', 'Criar'),
-            ('encaminhamento', 'Encaminhar'),
-        ]
 
-        # Assign document to instance to avoid RelatedObjectDoesNotExist during clean()
+        super().__init__(*args, **kwargs)
+
         if self.documento:
             self.instance.documento = self.documento
 
-        # ========== LÓGICA DE FILTROS BASEADA NO USUÁRIO ==========
+        # Choices de tipo de movimentação
+        self.fields['tipo_movimentacao'].choices = [
+            ('criacao',        'Criar'),
+            ('encaminhamento', 'Encaminhar'),
+        ]
 
-        # ========== LÓGICA DE FILTROS BASEADA NO USUÁRIO ==========
-
-        if self.user:
-            # Determinar a administração do usuário
-            administracao_usuario = self.user.administracao
-            
-            if administracao_usuario:
-                # ---------------------------------------------------------
-                # LÓGICA ESPECIAL: Ministério (MAT)
-                # ---------------------------------------------------------
-                if administracao_usuario.tipo_municipio == 'M':
-                    # Vê Departamentos internos do MAT
-                    # E TAMBÉM "Secretaria Geral" de TODOS os Governos Provinciais
-                    governos_ids = Administracao.objects.filter(
-                        tipo_municipio='G'
-                    ).values_list('id', flat=True)
-                    
-                    self.fields['departamento_destino'].queryset = Departamento.objects.filter(
-                        Q(administracao=administracao_usuario) |
-                        Q(administracao_id__in=governos_ids, nome__icontains="Secretaria Geral")
-                    ).distinct().order_by('administracao__nome', 'nome')
-                    
-                    self.fields['departamento_destino'].label = "Destino (Interno ou Governo Provincial)"
-                
-                # ---------------------------------------------------------
-                # LÓGICA ESPECIAL: Governo Provincial
-                # ---------------------------------------------------------
-                elif administracao_usuario.tipo_municipio == 'G':
-                    # Vê Departamentos da própria admin (Governo)
-                    # E TAMBÉM "Secretaria Geral" das Administrações MUNICIPAIS da mesma província
-                    # E TAMBÉM "Secretaria Geral" do MAT
-                    admins_municipais = Administracao.objects.filter(
-                        provincia=administracao_usuario.provincia
-                    ).exclude(tipo_municipio__in=['G', 'M']).values_list('id', flat=True)
-                    
-                    mat_ids = Administracao.objects.filter(
-                        tipo_municipio='M'
-                    ).values_list('id', flat=True)
-                    
-                    self.fields['departamento_destino'].queryset = Departamento.objects.filter(
-                        Q(tipo_municipio=administracao_usuario.tipo_municipio, administracao__isnull=True) |
-                        Q(administracao=administracao_usuario) |
-                        Q(administracao_id__in=admins_municipais, nome__icontains="Secretaria Geral") |
-                        Q(administracao_id__in=mat_ids, nome__icontains="Secretaria Geral")
-                    ).distinct().order_by('administracao__nome', 'nome')
-                    
-                    self.fields['departamento_destino'].label = "Destino (Interno, Municipal ou MAT)"
-                
-                # ---------------------------------------------------------
-                # LÓGICA ESPECIAL: Administração Municipal (Secretaria Geral)
-                # ---------------------------------------------------------
-                elif hasattr(self.user, 'departamento') and self.user.departamento and "Secretaria Geral" in self.user.departamento.nome:
-                     # Vê Departamentos da própria admin
-                    qs_dept = Departamento.objects.para_administracao(administracao_usuario)
-                    
-                    # TAMBÉM Vê "Secretaria Geral" do Governo Provincial
-                    governo_prov = Administracao.objects.filter(
-                        provincia=administracao_usuario.provincia,
-                        tipo_municipio='G'
-                    ).first()
-                    
-                    if governo_prov:
-                        # Usar Q objects para combinar queryset de forma eficiente
-                        self.fields['departamento_destino'].queryset = Departamento.objects.filter(
-                            Q(tipo_municipio=administracao_usuario.tipo_municipio, administracao__isnull=True) |
-                            Q(administracao=administracao_usuario) |
-                            Q(administracao=governo_prov, nome__icontains="Secretaria Geral")
-                        ).distinct().order_by('administracao__nome', 'nome')
-                    else:
-                        self.fields['departamento_destino'].queryset = qs_dept
-                        
-                # ---------------------------------------------------------
-                # LÓGICA PADRÃO (Mesma Administração)
-                # ---------------------------------------------------------
-                else:
-                    # Lógica diferenciada baseada na localização do usuário
-                    if hasattr(self.user, 'seccao') and self.user.seccao:
-                        # CENÁRIO A: Usuário está em uma SECÇÃO
-                        dept_pai = self.user.seccao.departamento
-
-                        # REQ: "no select departamento só vai aparecer o seu departamento"
-                        self.fields['departamento_destino'].queryset = Departamento.objects.filter(id=dept_pai.id)
-
-                        # REQ: "na seção só aparece outras secção do seu departamento excepto o sua"
-                        self.fields['seccao_destino'].queryset = Seccoes.objects.filter(
-                            departamento=dept_pai
-                        ).exclude(id=self.user.seccao.id).order_by('nome')
-
-                    else:
-                        # CENÁRIO B: Usuário está no DEPARTAMENTO (Diretor/Chefe)
-                        # REQ: "no departamento o seu departamento n deve aparecer no seu selct"
-                        self.fields['departamento_destino'].queryset = Departamento.objects.para_administracao(administracao_usuario).exclude(
-                            id=self.user.departamento.id if self.user.departamento else -1
-                        ).order_by('nome')
-
-                        # Secções: Vê TODAS as secções do departamento selecionado (via AJAX)
-                        # Inicialmente vazio ou filtrado se houver dados POST
-                        self.fields['seccao_destino'].queryset = Seccoes.objects.filter(
-                            departamento=self.user.departamento
-                        ).order_by('nome')
-
-                    self.fields['departamento_destino'].label = "Encaminhar para Departamento"
-                    self.fields['seccao_destino'].label = "Ou para Secção (Interno)"
-            else:
-                # Se usuário não tem administração (ex: admin sistema sem vinculo), vê tudo?
-                # Ou não vê nada? Pela regra estrita, melhor não ver nada ou tudo se for superuser
-                if self.user.nivel_acesso == 'admin_sistema':
-                     self.fields['departamento_destino'].queryset = Departamento.objects.all()
-                     self.fields['seccao_destino'].queryset = Seccoes.objects.all()
-                else:
-                    self.fields['departamento_destino'].queryset = Departamento.objects.none()
-                    self.fields['seccao_destino'].queryset = Seccoes.objects.none()
-
-        else:
-            # Se não há usuário
-            self.fields['departamento_destino'].queryset = Departamento.objects.none()
-            self.fields['seccao_destino'].queryset = Seccoes.objects.none()
-
-        # ========== AJUSTAR REQUISITOS ==========
         self.fields['departamento_destino'].required = False
         self.fields['seccao_destino'].required = False
 
-        # Melhorar exibição das secções
-        self.fields['seccao_destino'].label_from_instance = lambda obj: f"{obj.nome}"
+        # Popula os querysets
+        if self.user:
+            qs_dept, qs_sec, seccoes_fixas = _calcular_destinos_permitidos(self.user)
+
+            self.fields['departamento_destino'].queryset = qs_dept
+            self.fields['seccao_destino'].queryset = qs_sec
+            
+            # Armazena se as secções são fixas (para o template saber)
+            self.seccoes_fixas = seccoes_fixas
+            
+            # Prepara dados JSON para o JavaScript (se secções forem dinâmicas)
+            if not seccoes_fixas:
+                # Cenário A: precisamos enviar mapa dept_id -> secções
+                # Como só há 1 dept possível, simplificamos
+                self.seccoes_data = {}
+                if qs_dept.exists():
+                    dept_id = qs_dept.first().pk
+                    self.seccoes_data[dept_id] = list(
+                        qs_sec.values('id', 'nome')
+                    )
+            else:
+                # Cenário B: secções já estão no queryset, não precisa mapa
+                self.seccoes_data = None
+
+            # Labels dinâmicos
+            ctx = _get_contexto_usuario(self.user)
+            admin = ctx['admin']
+            if admin:
+                if admin.tipo_municipio == 'M':
+                    self.fields['departamento_destino'].label = 'Destino (Interno ou Governo Provincial)'
+                elif admin.tipo_municipio == 'G':
+                    self.fields['departamento_destino'].label = 'Destino (Interno, Municipal ou MAT)'
+                else:
+                    self.fields['departamento_destino'].label = 'Encaminhar para Departamento'
+                    
+            # Label para secções
+            if seccoes_fixas:
+                self.fields['seccao_destino'].label = 'OU Encaminhar para Secção (do seu departamento)'
+            else:
+                self.fields['seccao_destino'].label = 'OU Encaminhar para Secção'
+        else:
+            self.fields['departamento_destino'].queryset = Departamento.objects.none()
+            self.fields['seccao_destino'].queryset = Seccoes.objects.none()
+            self.seccoes_fixas = False
+            self.seccoes_data = None
+
+        self.fields['seccao_destino'].label_from_instance = lambda obj: obj.nome
 
     def clean(self):
-        cleaned_data = super().clean()
-        dept_destino = cleaned_data.get('departamento_destino')
-        sec_destino = cleaned_data.get('seccao_destino')
-        tipo_mov = cleaned_data.get('tipo_movimentacao')
+        cleaned_data  = super().clean()
+        dept_destino  = cleaned_data.get('departamento_destino')
+        sec_destino   = cleaned_data.get('seccao_destino')
+        tipo_mov      = cleaned_data.get('tipo_movimentacao')
 
-        # ===== VALIDAÇÃO 1: Para encaminhamentos, deve ter UM destino =====
-        if tipo_mov == 'encaminhamento':
-            if not dept_destino and not sec_destino:
-                raise ValidationError(
-                    'Para encaminhar, você deve selecionar UM departamento OU uma secção de destino.'
-                )
-
-        # ===== VALIDAÇÃO 2: NÃO PODE selecionar AMBOS ao mesmo tempo =====
-        if dept_destino and sec_destino:
+        # Regra 1: encaminhamento exige um destino
+        if tipo_mov == 'encaminhamento' and not dept_destino and not sec_destino:
             raise ValidationError(
-                'Você deve escolher APENAS o departamento OU uma secção específica, não ambos.'
+                'Para encaminhar, selecione UM departamento OU uma secção de destino.'
             )
 
-        # ===== VALIDAÇÃO 3: Verificar se o destino é válido para o usuário =====
-        if self.user and dept_destino:
-            # Obter o departamento e tipo do usuário
-            if hasattr(self.user, 'seccao') and self.user.seccao:
-                dept_usuario = self.user.seccao.departamento
-                # Se está em secção, só pode encaminhar para o próprio departamento
-                if dept_destino.id != dept_usuario.id:
-                    raise ValidationError(
-                        'Você só pode encaminhar para o seu próprio departamento ou para secções dentro dele.'
-                    )
-            elif hasattr(self.user, 'departamento') and self.user.departamento:
-                dept_usuario = self.user.departamento
-                admin_usuario = self.user.administracao
-                
-                # REGRA ESPECIAL: Ministério (MAT) pode enviar para Secretaria Geral de Governos
-                if admin_usuario and admin_usuario.tipo_municipio == 'M':
-                    if dept_destino.administracao != admin_usuario:
-                        # É envio para outra administração - VERIFICAR se é Secretaria Geral de Governo
-                        if not dept_destino.administracao or dept_destino.administracao.tipo_municipio != 'G':
-                            raise ValidationError(
-                                'O Ministério só pode enviar para a "Secretaria Geral" dos Governos Provinciais.'
-                            )
-                        if "Secretaria Geral" not in dept_destino.nome:
-                            raise ValidationError(
-                                'Só pode enviar para a "Secretaria Geral" do Governo Provincial.'
-                            )
-                    elif dept_destino.id == dept_usuario.id:
-                        raise ValidationError(
-                            'Você não pode encaminhar para o seu próprio departamento.'
-                        )
-                
-                # REGRA ESPECIAL: Governo Provincial pode enviar para Secretaria Geral de Administrações e MAT
-                elif admin_usuario and admin_usuario.tipo_municipio == 'G':
-                    if dept_destino.administracao != admin_usuario:
-                        # É envio para outra administração
-                        dest_tipo = dept_destino.administracao.tipo_municipio if dept_destino.administracao else None
-                        # Pode enviar para Municipal (mesma prov) ou MAT
-                        if dest_tipo not in ('A', 'B', 'C', 'D', 'E', 'M'):
-                            raise ValidationError(
-                                'O Governo Provincial só pode enviar para administrações municipais ou para o Ministério.'
-                            )
-                        if "Secretaria Geral" not in dept_destino.nome:
-                            raise ValidationError(
-                                'Só pode enviar para a "Secretaria Geral" da administração de destino.'
-                            )
-                    elif dept_destino.id == dept_usuario.id:
-                        raise ValidationError(
-                            'Você não pode encaminhar para o seu próprio departamento.'
-                        )
-                
-                # REGRA ESPECIAL: Secretaria Geral pode enviar para Governo Provincial ou MAT
-                elif admin_usuario and "Secretaria Geral" in dept_usuario.nome:
-                    if dept_destino.administracao != admin_usuario:
-                        dest_tipo = dept_destino.administracao.tipo_municipio if dept_destino.administracao else None
-                        # Secretaria Geral de Municipal pode enviar para Governo
-                        if dest_tipo not in ('G',):
-                            raise ValidationError(
-                                'A Secretaria Geral só pode enviar para o Governo Provincial.'
-                            )
-                        if "Secretaria Geral" not in dept_destino.nome:
-                            raise ValidationError(
-                                'Só pode enviar para a "Secretaria Geral" do Governo Provincial.'
-                            )
-                    elif dept_destino.id == dept_usuario.id:
-                        raise ValidationError(
-                            'Você não pode encaminhar para o seu próprio departamento.'
-                        )
-                
-                # REGRA PADRÃO: Mesma administração apenas
-                else:
-                    tipo_usuario = dept_usuario.tipo_municipio
-                    # Se está no departamento, pode encaminhar para qualquer dept do mesmo tipo
-                    if dept_destino.tipo_municipio != tipo_usuario:
-                        raise ValidationError(
-                            f'Você só pode encaminhar para departamentos do Município Tipo {tipo_usuario}.'
-                        )
-                    # Não pode encaminhar para si mesmo
-                    if dept_destino.id == dept_usuario.id:
-                        raise ValidationError(
-                            'Você não pode encaminhar para o seu próprio departamento.'
-                        )
+        # Regra 2: exclusividade mútua
+        if dept_destino and sec_destino:
+            raise ValidationError(
+                'Escolha APENAS o departamento OU a secção de destino, não ambos.'
+            )
 
-        # ===== VALIDAÇÃO 4: Verificar secção destino =====
-        if self.user and sec_destino:
-            if hasattr(self.user, 'seccao') and self.user.seccao:
-                # Não pode ser a própria secção
-                if sec_destino.id == self.user.seccao.id:
-                    raise ValidationError(
-                        'Você não pode encaminhar para a sua própria secção.'
-                    )
+        # Regra 3: validação de segurança (IDOR protection)
+        if self.user and (dept_destino or sec_destino):
+            qs_dept_valido, qs_sec_valida, _ = _calcular_destinos_permitidos(self.user)
 
-            # Verificar se a secção pertence ao departamento do usuário
-            dept_usuario = None
-            if hasattr(self.user, 'seccao') and self.user.seccao:
-                dept_usuario = self.user.seccao.departamento
-            elif hasattr(self.user, 'departamento') and self.user.departamento:
-                dept_usuario = self.user.departamento
-
-            if dept_usuario and sec_destino.departamento.id != dept_usuario.id:
+            if dept_destino and not qs_dept_valido.filter(pk=dept_destino.pk).exists():
                 raise ValidationError(
-                    'Você só pode encaminhar para secções do seu próprio departamento.'
+                    'O departamento selecionado não é um destino permitido para o seu perfil.'
+                )
+
+            if sec_destino and not qs_sec_valida.filter(pk=sec_destino.pk).exists():
+                raise ValidationError(
+                    'A secção selecionada não é um destino permitido para o seu perfil.'
                 )
 
         return cleaned_data
-
 
 class DespachoForm(forms.Form):
     """
@@ -491,6 +504,20 @@ class BuscaAvancadaForm(forms.Form):
         required=False
     )
 
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.user and self.user.administracao:
+            self.fields['departamento'].queryset = Departamento.objects.filter(
+                administracao=self.user.administracao,
+                ativo=True
+            ).order_by('nome')
+        elif self.user and self.user.is_superuser:
+            self.fields['departamento'].queryset = Departamento.objects.filter(ativo=True).order_by('nome')
+        else:
+            self.fields['departamento'].queryset = Departamento.objects.none()
+
 
 class CustomUserCreationForm(UserCreationForm):
     """
@@ -558,24 +585,33 @@ class CustomUserCreationForm(UserCreationForm):
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
 
         # Lógica para popular querysets se houver dados (POST ou instância)
+        # SEGURANÇA: Garantir que departamentos e secções pertençam à administração selecionada
         if 'administracao' in self.data:
             try:
                 admin_id = int(self.data.get('administracao'))
                 administracao = Administracao.objects.get(id=admin_id)
-                self.fields['departamento'].queryset = Departamento.objects.para_administracao(administracao)
+                self.fields['departamento'].queryset = Departamento.objects.para_administracao(administracao).order_by('nome')
             except (ValueError, TypeError, Administracao.DoesNotExist):
-                pass
+                self.fields['departamento'].queryset = Departamento.objects.none()
         elif self.instance.pk and self.instance.administracao:
-            self.fields['departamento'].queryset = Departamento.objects.para_administracao(self.instance.administracao)
+            self.fields['departamento'].queryset = Departamento.objects.para_administracao(self.instance.administracao).order_by('nome')
 
         if 'departamento' in self.data:
             try:
                 dept_id = int(self.data.get('departamento'))
-                self.fields['seccao'].queryset = Seccoes.objects.filter(departamento_id=dept_id)
+                # Garantir que a secção pertence ao departamento selecionado E à administração
+                self.fields['seccao'].queryset = Seccoes.objects.filter(departamento_id=dept_id).order_by('nome')
+                
+                # Double check de segurança (se administração estiver no form)
+                if 'administracao' in self.data:
+                    admin_id = int(self.data.get('administracao'))
+                    self.fields['seccao'].queryset = self.fields['seccao'].queryset.filter(departamento__administracao_id=admin_id)
             except (ValueError, TypeError):
-                pass
+                self.fields['seccao'].queryset = Seccoes.objects.none()
         elif self.instance.pk and self.instance.departamento:
-            self.fields['seccao'].queryset = Seccoes.objects.filter(departamento=self.instance.departamento)
+            self.fields['seccao'].queryset = Seccoes.objects.filter(departamento=self.instance.departamento).order_by('nome')
+        else:
+            self.fields['seccao'].queryset = Seccoes.objects.none()
 
 
 class CriarUsuarioAdminForm(UserCreationForm):
@@ -661,11 +697,17 @@ class CriarUsuarioAdminForm(UserCreationForm):
         if 'departamento' in self.data:
             try:
                 dept_id = int(self.data.get('departamento'))
+                # Garantir que a secção pertence ao departamento selecionado E à administração do admin
                 self.fields['seccao'].queryset = Seccoes.objects.filter(
-                    departamento_id=dept_id
+                    departamento_id=dept_id,
+                    departamento__administracao=self.admin_user.administracao
                 ).order_by('nome')
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError, AttributeError):
+                self.fields['seccao'].queryset = Seccoes.objects.none()
+        elif self.instance.pk and self.instance.departamento:
+            self.fields['seccao'].queryset = Seccoes.objects.filter(departamento=self.instance.departamento).order_by('nome')
+        else:
+            self.fields['seccao'].queryset = Seccoes.objects.none()
 
     def _post_clean(self):
         """

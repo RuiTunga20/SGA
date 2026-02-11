@@ -16,6 +16,7 @@ python manage.py migrate
 # Popular Banco de Dados (Ordem Importante)
 echo "--- Populando Administrações ---"
 python popular_administracoes.py
+python popular_governos.py
 
 echo "--- Populando Departamentos Base ---"
 python popular.py

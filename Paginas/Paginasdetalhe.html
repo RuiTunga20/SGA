@@ -141,21 +141,21 @@
                                 <div class="destino-row">
                                     <div class="form-group">
                                         <label for="{{ encaminhar_form.departamento_destino.id_for_label }}" class="form-label">
-                                            Departamento:
+                                            {{ encaminhar_form.departamento_destino.label }}
                                         </label>
                                         {{ encaminhar_form.departamento_destino }}
-                                        <div class="form-help">Todo o departamento</div>
+                                        <div class="form-help">Para encaminhar ao departamento como um todo</div>
                                         <div class="form-errors">{{ encaminhar_form.departamento_destino.errors }}</div>
                                     </div>
 
                                     <!-- NOVO: Campo de Secção -->
                                     <div class="form-group">
                                         <label for="{{ encaminhar_form.seccao_destino.id_for_label }}" class="form-label">
-                                            Secção:
+                                            {{ encaminhar_form.seccao_destino.label }}
                                             <span style="color: #16a34a; font-weight: bold;">(Recomendado)</span>
                                         </label>
                                         {{ encaminhar_form.seccao_destino }}
-                                        <div class="form-help">Apenas a secção</div>
+                                        <div class="form-help">Para encaminhar a uma secção específica</div>
                                         <div class="form-errors">{{ encaminhar_form.seccao_destino.errors }}</div>
                                     </div>
                                 </div>
@@ -300,67 +300,58 @@
             document.querySelectorAll('.action-form select').forEach(el => el.classList.add('form-select'));
             document.querySelectorAll('.action-form textarea').forEach(el => el.classList.add('form-textarea'));
 
-            // Script para desabilitar campos mutuamente
-            const deptSelect = document.querySelector('select[name="departamento_destino"]');
-            const secSelect = document.querySelector('select[name="seccao_destino"]');
+            // Lógica de Independência e Exclusividade Mútua (Select2-Aware)
+            const $deptSelect = $('select[name="departamento_destino"]');
+            const $seccaoSelect = $('select[name="seccao_destino"]');
 
-            if (deptSelect && secSelect) {
-                // Quando seleciona departamento, limpa e desabilita secção
-                deptSelect.addEventListener('change', function() {
-                    if (this.value) {
-                        secSelect.value = '';
-                        secSelect.disabled = true;
-                        secSelect.style.opacity = '0.5';
-                        secSelect.parentElement.querySelector('.form-help').textContent = '⚠️ Desabilitado';
-                        // Atualizar Select2
-                        $(secSelect).val('').trigger('change');
-                    } else {
-                        secSelect.disabled = false;
-                        secSelect.style.opacity = '1';
-                        secSelect.parentElement.querySelector('.form-help').textContent = 'Apenas a secção';
-                    }
-                });
+            function handleExclusivity() {
+                const deptVal = $deptSelect.val();
+                const seccaoVal = $seccaoSelect.val();
 
-                // Quando seleciona secção, limpa e desabilita departamento
-                secSelect.addEventListener('change', function() {
-                    if (this.value) {
-                        deptSelect.value = '';
-                        deptSelect.disabled = true;
-                        deptSelect.style.opacity = '0.5';
-                        deptSelect.parentElement.querySelector('.form-help').textContent = '⚠️ Desabilitado';
-                        // Atualizar Select2
-                        $(deptSelect).val('').trigger('change');
-                    } else {
-                        deptSelect.disabled = false;
-                        deptSelect.style.opacity = '1';
-                        deptSelect.parentElement.querySelector('.form-help').textContent = 'Todo o departamento';
-                    }
-                });
-
-                // Reabilitar antes de submeter
-                document.querySelectorAll('form').forEach(function(form) {
-                    form.addEventListener('submit', function(e) {
-                        if (deptSelect) deptSelect.disabled = false;
-                        if (secSelect) secSelect.disabled = false;
-                    });
-                });
+                if (deptVal) {
+                    // Bloquear secção
+                    $seccaoSelect.prop('disabled', true);
+                    $seccaoSelect.next('.select2-container').css('opacity', '0.5');
+                    $seccaoSelect.next('.select2-container').find('.select2-selection').css('background-color', '#f9fafb');
+                } else if (seccaoVal) {
+                    // Bloquear departamento
+                    $deptSelect.prop('disabled', true);
+                    $deptSelect.next('.select2-container').css('opacity', '0.5');
+                    $deptSelect.next('.select2-container').find('.select2-selection').css('background-color', '#f9fafb');
+                } else {
+                    // Liberar ambos
+                    $deptSelect.prop('disabled', false);
+                    $seccaoSelect.prop('disabled', false);
+                    $deptSelect.next('.select2-container').css('opacity', '1');
+                    $seccaoSelect.next('.select2-container').css('opacity', '1');
+                    $deptSelect.next('.select2-container').find('.select2-selection').css('background-color', '#ffffff');
+                    $seccaoSelect.next('.select2-container').find('.select2-selection').css('background-color', '#ffffff');
+                }
             }
-        });
 
-        // Ativar Select2 após o DOM estar pronto
-        $(document).ready(function() {
+            $deptSelect.on('change', handleExclusivity);
+            $seccaoSelect.on('change', handleExclusivity);
+
+            // Antes de enviar, reabilitar para o Django receber os dados
+            document.querySelectorAll('form').forEach(function(form) {
+                form.addEventListener('submit', function(e) {
+                    $deptSelect.prop('disabled', false);
+                    $seccaoSelect.prop('disabled', false);
+                });
+            });
+
+            // Ativar Select2
             $('select').select2({
                 placeholder: 'Pesquisar...',
                 allowClear: true,
                 language: {
-                    noResults: function() {
-                        return "Nenhum resultado encontrado";
-                    },
-                    searching: function() {
-                        return "Pesquisando...";
-                    }
+                    noResults: function() { return "Nenhum resultado encontrado"; },
+                    searching: function() { return "Pesquisando..."; }
                 }
             });
+
+            // Trigger inicial após Select2 pronto
+            setTimeout(handleExclusivity, 100);
         });
     </script>
 </body>

@@ -1415,7 +1415,11 @@ def load_seccoes(request):
     """
     departamento_id = request.GET.get('departamento')
     if departamento_id:
-        seccoes = Seccoes.objects.filter(departamento_id=departamento_id, ativo=True).order_by('nome')
+        seccoes = Seccoes.objects.filter(
+            departamento_id=departamento_id, 
+            departamento__administracao=request.user.administracao, # SEGURANÇA: Apenas da própria ADMIN
+            ativo=True
+        ).order_by('nome')
     else:
         seccoes = Seccoes.objects.none()
     
@@ -1627,7 +1631,8 @@ def ajax_seccoes_departamento(request):
     if departamento_id:
         try:
             seccoes = list(Seccoes.objects.filter(
-                departamento_id=int(departamento_id)
+                departamento_id=int(departamento_id),
+                departamento__administracao=request.user.administracao # SEGURANÇA: Apenas da própria ADMIN
             ).values('id', 'nome').order_by('nome'))
         except (ValueError, TypeError):
             pass
