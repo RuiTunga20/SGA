@@ -137,6 +137,16 @@ def dashboard(request):
         doc_todos_meus = Documento.objects.para_usuario(user).count()
         doc_historico = doc_todos_meus - doc_posse
 
+    # 4c. Documentos finalizados (Arquivo Morto)
+    documentos_mortos = Documento.objects.para_usuario(user).filter(
+        status__in=[
+            StatusDocumento.DESPACHO,
+            StatusDocumento.APROVADO,
+            StatusDocumento.REPROVADO,
+            StatusDocumento.ARQUIVADO
+        ]
+    ).count()
+
     context = {
         'departamento_nome': departamento_usuario.nome,
         'seccao_nome': seccao_usuario.nome if seccao_usuario else None,
