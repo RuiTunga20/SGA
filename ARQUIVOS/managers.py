@@ -16,7 +16,8 @@ class DocumentoManager(SoftDeleteManager):
 
     def para_usuario(self, user):
         """
-        Filtra documentos visíveis para o usuário baseado na hierarquia e ADMINISTRAÇÃO.
+        Filtra documentos visíveis para o usuário baseado na hierarquia, 
+        ADMINISTRAÇÃO e HISTÓRICO de movimentação.
         """
         qs = self.get_queryset()
 
@@ -25,28 +26,38 @@ class DocumentoManager(SoftDeleteManager):
             if not user.administracao:
                 return qs.none()
             
-            # AGORA FILTRAMOS PELO CAMPO DIRETO NO DOCUMENTO
-            # Isso resolve o problema de documentos em departamentos genéricos
+            # Filtramos pelo campo direto no documento para garantir isolamento Multi-Tenant
             qs = qs.filter(administracao=user.administracao)
 
-        # 1. Admins veem tudo (da sua administração)
+        # 1. Admins da Administração veem tudo da sua admin
         niveis_admin = ['admin_sistema', 'admin_municipal', 'admin', 'diretor', 'diretor_municipal']
         if user.is_superuser or user.nivel_acesso in niveis_admin:
             return qs
 
         # 2. Usuário de Secção
         if hasattr(user, 'seccao') and user.seccao:
+            # Vê APENAS se:
+            # - Está atualmente na sua secção
+            # - Já passou pela sua secção no passado (histórico)
             return qs.filter(
                 Q(seccao_atual=user.seccao) |
-                (Q(departamento_atual=user.seccao.departamento) & Q(seccao_atual__isnull=True))
-            )
+                Q(movimentacoes__seccao_origem=user.seccao) |
+                Q(movimentacoes__seccao_destino=user.seccao)
+            ).distinct()
 
         # 3. Usuário de Departamento
         if hasattr(user, 'departamento') and user.departamento:
-            return qs.filter(departamento_atual=user.departamento)
+            # Vê se:
+            # - Está atualmente no seu departamento
+            # - Já passou pelo seu departamento no passado (histórico)
+            return qs.filter(
+                Q(departamento_atual=user.departamento) |
+                Q(movimentacoes__departamento_origem=user.departamento) |
+                Q(movimentacoes__departamento_destino=user.departamento)
+            ).distinct()
 
-        # 4. Fallback
-        return qs.none()
+        # 4. Fallback: Ver apenas seus próprios documentos criados se não tiver setor
+        return qs.filter(criado_por=user).distinct()
 
 
 class AdministracaoManager(models.Manager):

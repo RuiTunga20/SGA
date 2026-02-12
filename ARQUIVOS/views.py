@@ -112,25 +112,39 @@ def dashboard(request):
             data_criacao__date=hoje
         ).count()
 
-    # 4. Total de documentos ATUALMENTE na minha posse
+    # 4. Total de documentos ATUALMENTE na minha posse (Secção ou Depto)
     total_documentos_na_posse = Documento.objects.filter(
         **filtro_atual
     ).count()
 
-    # 5. Documentos mortos (Arquivados/Finalizados)
-    # Aqui geralmente queremos ver o histórico do Depto todo, mas podemos filtrar
-    documentos_mortos = Documento.objects.filter(
-        status=StatusDocumento.ARQUIVADO,
-        departamento_atual=departamento_usuario  # Arquivo costuma ser por Depto
-    ).count()
+    # 4b. Novos contadores refinados: POSSE vs HISTÓRICO
+    doc_posse = 0
+    doc_historico = 0
+    
+    if seccao_usuario:
+        # Tudo que está na secção agora
+        doc_posse = Documento.objects.filter(seccao_atual=seccao_usuario).count()
+        # Tudo que já passou mas está noutro lado
+        doc_todos_meus = Documento.objects.para_usuario(user).count()
+        doc_historico = doc_todos_meus - doc_posse
+    else:
+        # Tudo que está no depto sem secção agora
+        doc_posse = Documento.objects.filter(
+            departamento_atual=departamento_usuario, 
+            seccao_atual__isnull=True
+        ).count()
+        # Tudo que já passou mas está noutro lado
+        doc_todos_meus = Documento.objects.para_usuario(user).count()
+        doc_historico = doc_todos_meus - doc_posse
 
     context = {
         'departamento_nome': departamento_usuario.nome,
-        'seccao_nome': seccao_usuario.nome if seccao_usuario else None,  # Adicionar ao template
+        'seccao_nome': seccao_usuario.nome if seccao_usuario else None,
         'documentos_pendentes': documentos_pendentes,
         'documentos_encaminhados_hoje': documentos_encaminhados_hoje,
         'documentos_registados_hoje': documentos_registados_hoje,
-        'total_documentos_no_departamento': total_documentos_na_posse,  # Nome da var mantido, mas lógica é "na posse"
+        'doc_posse': doc_posse,
+        'doc_historico': doc_historico,
         'documentos_mortos': documentos_mortos,
     }
 
@@ -236,13 +250,31 @@ def listar_documentos(request):
         )
     )
 
-    # 3. Filtros da URL (Mantidos)
+    # 3. Filtros da URL (Mantidos e Expandidos)
     status = request.GET.get('status')
     prioridade = request.GET.get('prioridade')
-    # ... outros filtros ...
+    local = request.GET.get('local')  # Novo filtro de localização atual
 
     if status: documentos = documentos.filter(status=status)
     if prioridade: documentos = documentos.filter(prioridade=prioridade)
+    
+    # Lógica do filtro de localização atual
+    if local == 'posse':
+        if getattr(user, 'seccao', None):
+            documentos = documentos.filter(seccao_atual=user.seccao)
+        else:
+            documentos = documentos.filter(
+                departamento_atual=user.departamento_id,
+                seccao_atual__isnull=True
+            )
+    elif local == 'historico':
+        if getattr(user, 'seccao', None):
+            documentos = documentos.exclude(seccao_atual=user.seccao)
+        else:
+            documentos = documentos.exclude(
+                departamento_atual=user.departamento_id,
+                seccao_atual__isnull=True
+            )
 
     # Filtro Especial: "Novos Hoje" (Opcional na URL)
     if request.GET.get('filtro') == 'novos':
@@ -339,7 +371,7 @@ def detalhe_documento(request, documento_id):
     Exibir detalhes do documento e permitir ações
     """
     documento = get_object_or_404(
-        Documento.objects.select_related(
+        Documento.objects.para_usuario(request.user).select_related(
             'tipo_documento', 
             'departamento_origem', 
             'departamento_atual', 
@@ -1253,15 +1285,15 @@ def arquivo_morto(request):
     """
     user = request.user
 
-    # A base da query são os documentos com status finalizados
-    documentos_arquivados = Documento.objects.filter(status__in=[StatusDocumento.DESPACHO, StatusDocumento.APROVADO, StatusDocumento.REPROVADO, StatusDocumento.ARQUIVADO])
-    # Filtro por nível de acesso (igual à view de listar)
-    if user.nivel_acesso not in ['admin', 'diretor']:
-        documentos_arquivados = documentos_arquivados.filter(
-            Q(departamento_atual=user.departamento) |
-            Q(departamento_origem=user.departamento) |
-            Q(criado_por=user)
-        )
+    # A base da query são os documentos com status finalizados, filtrados pela visibilidade do utilizador
+    documentos_arquivados = Documento.objects.para_usuario(user).filter(
+        status__in=[
+            StatusDocumento.DESPACHO, 
+            StatusDocumento.APROVADO, 
+            StatusDocumento.REPROVADO, 
+            StatusDocumento.ARQUIVADO
+        ]
+    )
     print('------------------------------------')
     print(documentos_arquivados.filter(
             Q(departamento_atual=user.departamento) |

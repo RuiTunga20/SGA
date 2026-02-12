@@ -329,6 +329,17 @@ class CustomUserCreationForm(UserCreationForm):
                 .order_by('nome')
             )
 
+    def clean(self):
+        cleaned_data = super().clean()
+        departamento = cleaned_data.get('departamento')
+        seccao = cleaned_data.get('seccao')
+
+        # Se ambos forem selecionados, prioriza a secção e "esquece" o departamento
+        if departamento and seccao:
+            cleaned_data['departamento'] = None
+        
+        return cleaned_data
+
 
 # ===========================================================================
 # CriarUsuarioAdminForm (REFATORADO COM HierarchyManager)
@@ -455,6 +466,17 @@ class CriarUsuarioAdminForm(UserCreationForm):
                 Seccoes.objects.filter(departamento=self.instance.departamento)
                 .order_by('nome')
             )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        departamento = cleaned_data.get('departamento')
+        seccao = cleaned_data.get('seccao')
+
+        # Se ambos forem selecionados, prioriza a secção e "esquece" o departamento
+        if departamento and seccao:
+            cleaned_data['departamento'] = None
+        
+        return cleaned_data
 
     def _post_clean(self):
         """Define administração ANTES da validação do modelo."""

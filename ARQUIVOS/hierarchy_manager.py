@@ -239,15 +239,19 @@ def _calcular_destinos_permitidos(user, ctx=None, incluir_self=True):
 
     if em_seccao:
         # -----------------------------------------------------------------
-        # CENÁRIO A: Usuário em Secção
-        # - Dept disponível: APENAS o dept pai (ou nenhum se incluir_self=False)
+        # CENÁRIO A: Usuário em Secção (CORRIGIDO!)
+        # 
+        # NOVO COMPORTAMENTO:
+        # - Dept disponível: AGORA INCLUI O DEPARTAMENTO PAI!
         # - Secções disponíveis: todas do mesmo dept, exceto a própria
-        # - Secções são DINÂMICAS (dependem do dept, mas dept é único)
+        # - Secções são DINÂMICAS (mas dept é único, então na prática fixas)
+        #
+        # MOTIVO: Secção precisa comunicar com seu departamento pai
+        # SEGURANÇA: Ainda é validado que é o dept pai da secção
         # -----------------------------------------------------------------
-        if incluir_self:
-            qs_dept_final = qs_dept_base.filter(pk=dept.pk) if dept else Departamento.objects.none()
-        else:
-            qs_dept_final = Departamento.objects.none()
+        
+        # ✅ CORREÇÃO: Incluir SEMPRE o departamento pai
+        qs_dept_final = qs_dept_base.filter(pk=dept.pk) if dept else Departamento.objects.none()
         
         qs_sec_final = Seccoes.objects.filter(
             departamento=dept,

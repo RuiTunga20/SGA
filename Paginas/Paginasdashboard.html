@@ -79,19 +79,25 @@
                 <div class="card-value pendentes">{{ documentos_pendentes }}</div>
             </a>
 
-            <a href="{% url 'listar_documentos' %}" class="stat-card">
+            <a href="{% url 'listar_documentos' %}?filtro=novos" class="stat-card">
                 <div class="card-title">ENCAMINHADOS HOJE</div>
                 <div class="card-value encaminhados">{{ documentos_encaminhados_hoje }}</div>
             </a>
 
-            <a href="{% url 'listar_documentos' %}" class="stat-card">
+            <a href="{% url 'listar_documentos' %}?filtro=novos" class="stat-card">
                 <div class="card-title">REGISTADOS HOJE</div>
                 <div class="card-value registados">{{ documentos_registados_hoje }}</div>
             </a>
 
-            <a href="{% url 'listar_documentos' %}" class="stat-card">
-                <div class="card-title">TOTAL NO DEPARTAMENTO</div>
-                <div class="card-value total">{{ total_documentos_no_departamento }}</div>
+            <!-- Novos Cartões de Localização (Posse vs Histórico) -->
+            <a href="{% url 'listar_documentos' %}?local=posse" class="stat-card">
+                <div class="card-title">POSSE ATUAL</div>
+                <div class="card-value total" style="color: var(--success-green);">{{ doc_posse }}</div>
+            </a>
+
+            <a href="{% url 'listar_documentos' %}?local=historico" class="stat-card">
+                <div class="card-title">HISTÓRICO (JÁ TRAMITADOS)</div>
+                <div class="card-value total" style="color: var(--accent-gold);">{{ doc_historico }}</div>
             </a>
 
             <a href="{% url 'arquivo_morto' %}" class="stat-card">

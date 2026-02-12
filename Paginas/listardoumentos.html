@@ -89,8 +89,14 @@
             border: 1px solid #ddd;
             text-align: left;
         }
-        /* Destaque para documentos no meu departamento */
-        .meu-departamento {
+
+        /* Destaque para HISTÓRICO (Documentos que já passaram por aqui) */
+        .historico-dourado {
+            border-left: 4px solid var(--accent-gold);
+            background-color: rgba(218, 165, 32, 0.05);
+        }
+        /* Destaque para POSSE ATUAL (Documento está aqui agora) */
+        .posse-verde {
             border-left: 4px solid #28a745;
             background-color: rgba(40, 167, 69, 0.05);
         }
@@ -104,6 +110,19 @@
              text-align: center;
         }
         /* ... (restante do seu CSS original do formulário) ... */
+        .filter-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn-filter {
+            font-size: 0.8rem;
+            padding: 0.5rem;
+            min-width: 80px;
+        }
+        .btn-todos { background-color: var(--primary-red); color: white; }
+        .btn-seccao { background-color: var(--info-blue); color: white; border-color: var(--info-blue); }
+        .btn-depto { background-color: var(--accent-gold); color: white; border-color: var(--accent-gold); }
+        .btn-inactive { background-color: var(--text-grey); color: white; border-color: var(--text-grey); }
 </style>
 </head>
 <body>
@@ -113,8 +132,19 @@
         <div class="form-container">
             <h3>{% if form.instance.pk %}Editar Documento{% else %}Documentos Recebidos{% endif %}</h3>
 
-            <div class="search-container">
-                <input type="search" id="table-search-input" placeholder="🔎 Pesquisar na tabela...">
+            <div class="search-container" style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+                <input type="search" id="table-search-input" placeholder="🔎 Pesquisar na tabela..." style="flex: 1;">
+                
+                <div class="filter-buttons">
+                    <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.prioridade %}prioridade={{ request.GET.prioridade }}&{% endif %}" 
+                       class="btn btn-primary btn-filter {% if not request.GET.local %}btn-todos{% else %}btn-inactive{% endif %}">Todos</a>
+                    
+                    <a href="?local=posse{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.prioridade %}&prioridade={{ request.GET.prioridade }}{% endif %}" 
+                       class="btn btn-primary btn-filter {% if request.GET.local == 'posse' %}btn-seccao{% else %}btn-inactive{% endif %}">Posse Atual</a>
+
+                    <a href="?local=historico{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.prioridade %}&prioridade={{ request.GET.prioridade }}{% endif %}" 
+                       class="btn btn-primary btn-filter {% if request.GET.local == 'historico' %}btn-depto{% else %}btn-inactive{% endif %}">Histórico</a>
+                </div>
             </div>
 
             <div class="table-container">
@@ -140,7 +170,7 @@
                     </thead>
                     <tbody id="documents-table-body" >
                         {% for documento in documentos %}
-                        <tr class="{% if documento.departamento_atual == request.user.departamento or documento.departamento_atual == request.user.seccao.Departamento %}meu-departamento{% endif %}">
+                        <tr class="{% if request.user.seccao %}{% if documento.seccao_atual_id == request.user.seccao_id %}posse-verde{% else %}historico-dourado{% endif %}{% else %}{% if documento.departamento_atual_id == request.user.departamento_id and not documento.seccao_atual_id %}posse-verde{% else %}historico-dourado{% endif %}{% endif %}">
                             <td>
                                 <div class="document-title">{{ documento.numero_protocolo  }}</div>
                                 
