@@ -152,6 +152,21 @@ ESTRUTURA = {
             "Secção de Obras e Saneamento"
         ],
     },
+    'E': {
+        "Gabinete do Administrador Municipal": [
+            "Secção de Secretariado e Apoio Técnico",
+            "Secção de Expediente e Arquivo"
+        ],
+        "Repartição de Administração e Serviços Gerais": [
+            "Secção de Finanças, Pessoal e Expediente"
+        ],
+        "Repartição de Serviços Sociais e Económicos": [
+            "Secção de Educação, Saúde e Acção Social"
+        ],
+        "Repartição de Serviços Técnicos, Infra-estruturas e Agricultura": [
+            "Secção de Obras, Saneamento e Agricultura"
+        ],
+    },
 }
 
 
