@@ -5,26 +5,24 @@ class Command(BaseCommand):
     help = 'Create default administration, department and user'
 
     def handle(self, *args, **options):
-        # 1. Create administration if not exists
-        admin, created_admin = Administracao.objects.get_or_create(
-            nome='Administração Padrão',
-            defaults={'tipo_municipio': 'A'}
-        )
-        if created_admin:
-            self.stdout.write(self.style.SUCCESS(f'Created Administracao: {admin.nome}'))
-        else:
-            self.stdout.write(f'Administracao already exists: {admin.nome}')
+        # 1. Use an existing administration (e.g., Luanda or first available)
+        admin = Administracao.objects.filter(nome='Luanda').first() or Administracao.objects.first()
+        
+        if not admin:
+            self.stdout.write(self.style.ERROR('No Administration found. Please run population scripts first.'))
+            return
 
-        # 2. Create department linked to this administration
-        dept, created_dept = Departamento.objects.get_or_create(
-            nome='Departamento Padrão',
-            administracao=admin,
-            defaults={'tipo_municipio': admin.tipo_municipio}
-        )
-        if created_dept:
-            self.stdout.write(self.style.SUCCESS(f'Created Departamento: {dept.nome}'))
-        else:
-            self.stdout.write(f'Departamento already exists: {dept.nome}')
+        self.stdout.write(f'Using Administracao: {admin.nome}')
+
+        # 2. Use an existing department (e.g., Secretaria Geral)
+        dept = Departamento.objects.filter(nome='Secretaria Geral', administracao=admin).first() or \
+               Departamento.objects.filter(administracao=admin).first()
+        
+        if not dept:
+            self.stdout.write(self.style.ERROR(f'No Department found for {admin.nome}.'))
+            return
+
+        self.stdout.write(f'Using Departamento: {dept.nome}')
 
         # 3. Create default user linked to admin and dept
         username = 'usuario_padrao'

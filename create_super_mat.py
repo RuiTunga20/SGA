@@ -29,9 +29,9 @@ def create_super_admin():
     print(f"Dept: {dept_mat.nome}")
 
     # 3. Create Superuser
-    username = 'superadmin_mat'
+    username = 'Mat'
     email = 'superadmin@mat.gov.ao'
-    password = 'AdminPass123!'
+    password = '@123456@!'
 
     if CustomUser.objects.filter(username=username).exists():
         print(f"Usuário {username} já existe. Atualizando password...")

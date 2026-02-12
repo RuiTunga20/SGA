@@ -24,15 +24,16 @@ def populate_orphan_administracoes(apps, schema_editor):
     
     # NOVO: Criar admins padrão para cada tipo se não existirem
     # Isso é necessário para bancos de dados novos (ex: testes)
-    for tipo in ['A', 'B', 'C', 'D', 'E']:
-        if tipo not in admins_por_tipo:
-            admin_padrao, created = Administracao.objects.get_or_create(
-                tipo_municipio=tipo,
-                defaults={'nome': f'Administração Padrão Tipo {tipo}'}
-            )
-            admins_por_tipo[tipo] = admin_padrao
-            if created:
-                print(f"  [CREATED] Admin padrão Tipo {tipo}")
+    # [COMENTADO] Administrações padrão não são mais necessárias após população completa
+    # for tipo in ['A', 'B', 'C', 'D', 'E']:
+    #     if tipo not in admins_por_tipo:
+    #         admin_padrao, created = Administracao.objects.get_or_create(
+    #             tipo_municipio=tipo,
+    #             defaults={'nome': f'Administração Padrão Tipo {tipo}'}
+    #         )
+    #         admins_por_tipo[tipo] = admin_padrao
+    #         if created:
+    #             print(f"  [CREATED] Admin padrão Tipo {tipo}")
     
     # 1. Migrar Departamentos órfãos
     dept_orfaos = Departamento.objects.filter(administracao__isnull=True)
