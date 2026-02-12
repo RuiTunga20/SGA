@@ -59,11 +59,17 @@
                             <div class="notifications-dropdown" id="notificationsDropdown">
                                 <div style="padding: 1rem; font-weight: bold; border-bottom: 1px solid #eee;">Notificações</div>
                                 {% for notification in recent_notifications %}
-                                    <div class="notification-item {% if not notification.lida %}unread{% endif %}">
-                                        <a href="{{ notification.link }}">
-                                            {{ notification.mensagem }}
-                                            <small style="display: block; color: #999; margin-top: 5px;">{{ notification.data_criacao|timesince }} atrás</small>
-                                        </a>
+                                    <div class="notification-item {% if not notification.lida %}unread{% endif %}" data-id="{{ notification.id }}">
+                                        <div class="notification-content">
+                                            <span class="notification-message">{{ notification.mensagem }}</span>
+                                            <div class="notification-meta">
+                                                <small class="notification-time">{{ notification.data_criacao|timesince }} atrás</small>
+                                                <a href="{{ notification.link }}" class="notification-action">Abrir Documento ➔</a>
+                                            </div>
+                                        </div>
+                                        {% if not notification.lida %}
+                                            <div class="unread-indicator"></div>
+                                        {% endif %}
                                     </div>
                                 {% empty %}
                                     <div style="padding: 1rem; text-align: center;">Nenhuma notificação.</div>

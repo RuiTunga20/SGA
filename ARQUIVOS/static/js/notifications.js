@@ -18,25 +18,31 @@ document.addEventListener('DOMContentLoaded', function () {
         bell.addEventListener('click', function (e) {
             e.stopPropagation();
             dropdown.classList.toggle('show');
+            // Nota: Não marcamos mais tudo como lido ao abrir o sino, 
+            // seguindo a nova lógica de marcação individual ou botão "Marcar Tudo".
+        });
 
-            if (countBadge && countBadge.style.display !== 'none') {
-                fetch(config.markReadUrl, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': config.csrfToken,
-                        'Content-Type': 'application/json'
-                    },
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'ok') {
-                            countBadge.style.display = 'none';
-                            // Informar WebSocket que as notificações foram lidas
-                            if (window.notificationSocket && window.notificationSocket.readyState === WebSocket.OPEN) {
-                                window.notificationSocket.send(JSON.stringify({ action: 'mark_read' }));
-                            }
-                        }
-                    });
+        // Clique individual na notificação
+        dropdown.addEventListener('click', function (e) {
+            const item = e.target.closest('.notification-item');
+            if (!item) return;
+
+            const notificationId = item.getAttribute('data-id');
+            const actionLink = e.target.closest('.notification-action');
+
+            // Se for não lida, marcar como lida
+            if (item.classList.contains('unread')) {
+                marcarComoLida(notificationId, item);
+            }
+
+            // Se clicou explicitamente no link de ação, deixa o navegador seguir
+            // Se clicou em qualquer outra parte do item, podemos redirecionar para o link também
+            if (!actionLink && item.querySelector('.notification-action')) {
+                e.preventDefault();
+                const targetUrl = item.querySelector('.notification-action').href;
+                if (targetUrl && targetUrl !== '#') {
+                    window.location.href = targetUrl;
+                }
             }
         });
 
@@ -49,6 +55,44 @@ document.addEventListener('DOMContentLoaded', function () {
         dropdown.addEventListener('click', function (e) {
             e.stopPropagation();
         });
+    }
+
+    function marcarComoLida(id, element) {
+        if (!id) return;
+        fetch(config.markReadUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': config.csrfToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ notification_id: id })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    if (element) {
+                        element.classList.remove('unread');
+                        const indicator = element.querySelector('.unread-indicator');
+                        if (indicator) indicator.remove();
+                    }
+
+                    // Decrementar countBadge
+                    const countBadge = document.getElementById('notificationCount');
+                    if (countBadge) {
+                        let currentCount = parseInt(countBadge.innerText) || 0;
+                        if (currentCount > 1) {
+                            countBadge.innerText = currentCount - 1;
+                        } else {
+                            countBadge.style.display = 'none';
+                        }
+                    }
+
+                    // Informar WebSocket
+                    if (window.notificationSocket && window.notificationSocket.readyState === WebSocket.OPEN) {
+                        window.notificationSocket.send(JSON.stringify({ action: 'mark_read', notification_id: id }));
+                    }
+                }
+            });
     }
 
     // ==========================================================
@@ -138,11 +182,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const novaNotificacao = document.createElement('div');
             novaNotificacao.className = 'notification-item unread';
+            // Nota: ID temporário até que o WS envie o ID real ou seja recarregado
             novaNotificacao.innerHTML = `
-                <a href="${link || '#'}">
-                    ${mensagem}
-                    <small style="display: block; color: #999; margin-top: 5px;">Agora mesmo</small>
-                </a>
+                <div class="notification-content">
+                    <span class="notification-message">${mensagem}</span>
+                    <div class="notification-meta">
+                        <small class="notification-time">Agora mesmo</small>
+                        <a href="${link || '#'}" class="notification-action">Abrir Documento ➔</a>
+                    </div>
+                </div>
+                <div class="unread-indicator"></div>
             `;
 
             // Inserir após o header do dropdown
@@ -195,12 +244,17 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 notificacoes.forEach(n => {
                     const item = document.createElement('div');
-                    item.className = 'notification-item unread';
+                    item.className = `notification-item ${n.lida ? '' : 'unread'}`;
+                    item.setAttribute('data-id', n.id);
                     item.innerHTML = `
-                        <a href="${n.link || '#'}">
-                            ${n.mensagem}
-                            <small style="display: block; color: #999; margin-top: 5px;">${n.data || ''}</small>
-                        </a>
+                        <div class="notification-content">
+                            <span class="notification-message">${n.mensagem}</span>
+                            <div class="notification-meta">
+                                <small class="notification-time">${n.data || ''}</small>
+                                <a href="${n.link || '#'}" class="notification-action">Abrir Documento ➔</a>
+                            </div>
+                        </div>
+                        ${n.lida ? '' : '<div class="unread-indicator"></div>'}
                     `;
                     dropdownEl.appendChild(item);
                 });

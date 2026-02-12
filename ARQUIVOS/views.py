@@ -26,7 +26,7 @@ from django.db.models.functions import Now
 # Importações Locais
 from .models import (
     Documento, MovimentacaoDocumento, Departamento, Seccoes, Anexo, StatusDocumento, Notificacao, CustomUser, Seccoes,
-    ArmazenamentoDocumento, LocalArmazenamento
+    ArmazenamentoDocumento, LocalArmazenamento, Administracao
 )
 from .formularios import (
     DocumentoForm, EncaminharDocumentoForm, DespachoForm,
@@ -825,6 +825,42 @@ def criar_documento(request):
                 observacoes='Documento criado no sistema'
             )
 
+            # === NOTIFICAÇÃO DE CRIAÇÃO ===
+            link_documento = request.build_absolute_uri(
+                reverse('detalhe_documento', args=[documento.id])
+            )
+            
+            # Notifica usuários do próprio setor sobre a criação do novo documento
+            if seccao_usuario:
+                utilizadores = CustomUser.objects.filter(
+                    seccao=seccao_usuario,
+                    administracao=request.user.administracao,
+                    is_active=True
+                ).exclude(id=request.user.id)
+                group_name = f"seccao_{seccao_usuario.id}"
+            else:
+                utilizadores = CustomUser.objects.filter(
+                    departamento=departamento_usuario,
+                    administracao=request.user.administracao,
+                    is_active=True
+                ).exclude(id=request.user.id)
+                group_name = f"departamento_{departamento_usuario.id}"
+
+            if utilizadores.exists():
+                notificacoes = [
+                    Notificacao(
+                        usuario=u,
+                        mensagem=f"Novo documento criado: {documento.numero_protocolo} - {documento.titulo}",
+                        link=link_documento
+                    )
+                    for u in utilizadores
+                ]
+                Notificacao.objects.bulk_create(notificacoes)
+                
+                # Enviar via WebSocket
+                mensagem_ws = f"Novo documento criado: {documento.numero_protocolo}"
+                send_notification_sync(group_name, mensagem_ws, link_documento)
+
             messages.success(request, f'Documento {documento.numero_protocolo} criado com sucesso!')
             return redirect('Encaminhar', documento_id=mv.id)
     else:
@@ -1011,55 +1047,54 @@ def encaminhar_documento(request, documento_id):
                             reverse('detalhe_documento', args=[documento_a_atualizar.id])
                         )
 
-                        # DETERMINA QUEM DEVE SER NOTIFICADO
+                        # DETERMINA QUEM DEVE SER NOTIFICADO (FILTRO POR ADMINISTRAÇÃO DO DESTINO)
+                        admin_destino_obj = None
                         if movimentacao_atualizada.seccao_destino:
-                            # Notifica APENAS usuários da SECÇÃO específica (FILTRO POR ADMINISTRAÇÃO)
+                            admin_destino_obj = movimentacao_atualizada.seccao_destino.departamento.administracao
+                        elif movimentacao_atualizada.departamento_destino:
+                            admin_destino_obj = movimentacao_atualizada.departamento_destino.administracao
+
+                        if movimentacao_atualizada.seccao_destino:
+                            # Notifica APENAS usuários da SECÇÃO específica (FILTRO POR ADMINISTRAÇÃO DO DESTINO)
                             utilizadores_a_notificar = CustomUser.objects.filter(
                                 seccao=movimentacao_atualizada.seccao_destino,
-                                administracao=request.user.administracao,
+                                administracao=admin_destino_obj,
                                 is_active=True
                             )
                             destino_texto = f"secção {movimentacao_atualizada.seccao_destino.nome}"
+                            group_name = f"seccao_{movimentacao_atualizada.seccao_destino.id}"
 
                         elif movimentacao_atualizada.departamento_destino:
-                            # Notifica TODOS os usuários do DEPARTAMENTO (FILTRO POR ADMINISTRAÇÃO)
+                            # Notifica TODOS os usuários do DEPARTAMENTO (FILTRO POR ADMINISTRAÇÃO DO DESTINO)
                             utilizadores_a_notificar = CustomUser.objects.filter(
                                 departamento=movimentacao_atualizada.departamento_destino,
-                                administracao=request.user.administracao,
+                                administracao=admin_destino_obj,
                                 is_active=True
                             )
                             destino_texto = f"departamento {movimentacao_atualizada.departamento_destino.nome}"
+                            group_name = f"departamento_{movimentacao_atualizada.departamento_destino.id}"
 
                         else:
                             utilizadores_a_notificar = []
                             destino_texto = "destino não especificado"
+                            group_name = None
 
-                        # Criar notificações em lote (mais eficiente)
-                        notificacoes = [
-                            Notificacao(
-                                usuario=u,
-                                mensagem=f"O documento '{documento_a_atualizar.numero_protocolo}' foi encaminhado para {destino_texto}.",
-                                link=link_documento
-                            )
-                            for u in utilizadores_a_notificar
-                        ]
-
-                        if notificacoes:
+                        # Criar notificações no banco
+                        if utilizadores_a_notificar:
+                            notificacoes = [
+                                Notificacao(
+                                    usuario=u,
+                                    mensagem=f"O documento '{documento_a_atualizar.numero_protocolo}' foi encaminhado para {destino_texto}.",
+                                    link=link_documento
+                                )
+                                for u in utilizadores_a_notificar
+                            ]
                             Notificacao.objects.bulk_create(notificacoes)
                             
-                            # ENVIAR NOTIFICAÇÃO EM TEMPO REAL VIA WEBSOCKET
-                            mensagem_ws = f"Novo documento: {documento_a_atualizar.numero_protocolo} - {documento_a_atualizar.titulo}"
-                            
-                            # Enviar para grupo da secção ou departamento
-                            if movimentacao_atualizada.seccao_destino:
-                                group_name = f"seccao_{movimentacao_atualizada.seccao_destino.id}"
+                            # Enviar via WebSocket em tempo real
+                            if group_name:
+                                mensagem_ws = f"Novo documento: {documento_a_atualizar.numero_protocolo} - {documento_a_atualizar.titulo}"
                                 send_notification_sync(group_name, mensagem_ws, link_documento)
-                                # Enviar evento de atualização de pendências em tempo real
-                                send_pendencia_update_sync(group_name, f"Novo documento pendente: {documento_a_atualizar.numero_protocolo}")
-                            elif movimentacao_atualizada.departamento_destino:
-                                group_name = f"departamento_{movimentacao_atualizada.departamento_destino.id}"
-                                send_notification_sync(group_name, mensagem_ws, link_documento)
-                                # Enviar evento de atualização de pendências em tempo real
                                 send_pendencia_update_sync(group_name, f"Novo documento pendente: {documento_a_atualizar.numero_protocolo}")
 
                 messages.success(request, 'Movimentação do documento atualizada com sucesso!')
@@ -1333,8 +1368,19 @@ from django.http import JsonResponse
 @login_required
 def marcar_notificacoes_como_lidas(request):
     if request.method == 'POST':
-        Notificacao.objects.filter(usuario=request.user, lida=False).update(lida=True)
-        return JsonResponse({'status': 'ok'})
+        import json
+        try:
+            data = json.loads(request.body)
+            notification_id = data.get('notification_id')
+            if notification_id:
+                Notificacao.objects.filter(id=notification_id, usuario=request.user).update(lida=True)
+            else:
+                Notificacao.objects.filter(usuario=request.user, lida=False).update(lida=True)
+            return JsonResponse({'status': 'ok'})
+        except Exception:
+            # Fallback para o comportamento anterior se não houver JSON ou ID
+            Notificacao.objects.filter(usuario=request.user, lida=False).update(lida=True)
+            return JsonResponse({'status': 'ok'})
     return JsonResponse({'status': 'error'}, status=400)
 
 
