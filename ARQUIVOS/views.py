@@ -695,6 +695,8 @@ def detalhe_documento(request, documento_id):
                     print(f"Erro ao gerar PDF/Email: {e}")
                     messages.warning(request, f'Despacho salvo, mas houve erro ao gerar PDF ou enviar email: {e}')
 
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'status': 'ok', 'message': 'Despacho registado com sucesso.', 'new_status': documento.get_status_display()})
                 return redirect('detalhe_documento', documento_id=documento.id)
 
         # === AÇÃO 3: FINALIZAÇÃO (Aprovado/Reprovado/Arquivado) ===
@@ -718,7 +720,10 @@ def detalhe_documento(request, documento_id):
             documento.data_conclusao = timezone.now()
             documento.save()
 
-            messages.success(request, f'Documento {action} com sucesso!')
+            msg = f'Documento {action} com sucesso!'
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'ok', 'message': msg, 'new_status': action})
+            messages.success(request, msg)
             return redirect('detalhe_documento', documento_id=documento.id)
 
         # === AÇÃO 4: CONFIRMAR RECEBIMENTO ===
@@ -755,6 +760,8 @@ def detalhe_documento(request, documento_id):
                         link_documento
                     )
                 
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'status': 'ok', 'message': 'Recebimento confirmado!'})
                 messages.success(request, 'Recebimento confirmado!')
 
             return redirect('detalhe_documento', documento_id=documento.id)

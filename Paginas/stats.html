@@ -1,15 +1,41 @@
-<div class="stats-grid">
-    
-    <div class="stat-card">
-        <div class="stat-number">{{dados.recebidos}}</div>
-        <div class="stat-label">Recebidos</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Recebidos -->
+    <div class="group bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 transform hover:-translate-y-1">
+        <div class="flex items-center justify-between mb-4">
+            <div class="p-3 bg-blue-50 text-blue-500 rounded-2xl group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                <i data-lucide="inbox" class="w-5 h-5"></i>
+            </div>
+            <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">Total</span>
+        </div>
+        <div class="text-3xl font-black text-slate-800 tracking-tight mb-1">{{ dados.recebidos }}</div>
+        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Documentos Recebidos</div>
     </div>
-    <div class="stat-card">
-        <div class="stat-number">{{dados.reencaminhados}}</div>
-        <div class="stat-label">Reencaminhados</div>
+
+    <!-- Reencaminhados -->
+    <div class="group bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 transform hover:-translate-y-1">
+        <div class="flex items-center justify-between mb-4">
+            <div class="p-3 bg-amber-50 text-amber-500 rounded-2xl group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                <i data-lucide="send" class="w-5 h-5"></i>
+            </div>
+            <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">Fluxo</span>
+        </div>
+        <div class="text-3xl font-black text-slate-800 tracking-tight mb-1">{{ dados.reencaminhados }}</div>
+        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reencaminhados</div>
     </div>
-    <div class="stat-card">
-        <div class="stat-number">{{dados.com_despacho}}</div>
-        <div class="stat-label">Despachados </div>
+
+    <!-- Despachados -->
+    <div class="group bg-slate-900 p-6 rounded-[2rem] border border-slate-800 shadow-2xl hover:bg-black transition-all duration-300 transform hover:-translate-y-1">
+        <div class="flex items-center justify-between mb-4">
+            <div class="p-3 bg-sga-red/20 text-sga-red rounded-2xl">
+                <i data-lucide="check-circle" class="w-5 h-5"></i>
+            </div>
+            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Finalizados</span>
+        </div>
+        <div class="text-3xl font-black text-white tracking-tight mb-1">{{ dados.com_despacho }}</div>
+        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Despachos Emitidos</div>
     </div>
 </div>
+
+<script>
+    if (window.lucide) { lucide.createIcons(); }
+</script>

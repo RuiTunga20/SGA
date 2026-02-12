@@ -1,208 +1,232 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGA - Gestão de Arquivos</title>
-<style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        /* -- NOVA PALETA DE CORES: Inspirada no SEPE.GOV.AO -- */
-        :root {
-            --primary-orange: red;
-            --text-grey: #5a5a5a;
-            --text-grey-dark: #333333;
-            --primary-red: #c8102e; 
-            --accent-gold: #daa520;
-            --bg-primary: #f4f4f4;
-            --bg-secondary: #ffffff;
-            --border: #cccccc;
-            --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
-        }
-
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: var(--bg-primary);
-            color: #333;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        /* --- ESTILOS DO FORMULÁRIO --- */
-        .form-container {
-            background: var(--bg-secondary); border: 1px solid var(--border);
-            border-radius: 3px; padding: 2rem; box-shadow: var(--shadow);
-            margin-top: 2rem;
-        }
-        .form-container h3 {
-            margin-bottom: 1.5rem; color: var(--primary-red); font-size: 1.25rem;
-            border-bottom: 1px solid #eee; padding-bottom: 1rem;
-        }
-        .document-form { display: flex; flex-direction: column; gap: 1.5rem; }
-        .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
-        .form-label { font-weight: bold; color: #333; font-size: 0.9rem; }
-        .form-input, .form-textarea, .form-select {
-            padding: 0.75rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border);
-            border-radius: 3px; color: #333; font-size: 1rem;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        .form-input:focus, .form-textarea:focus, .form-select:focus {
-            outline: none; border-color: var(--accent-gold);
-            box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
-        }
-        .form-textarea { resize: vertical; min-height: 100px; font-family: inherit; }
-        .form-help { font-size: 0.8rem; color: var(--text-grey); }
-        .form-actions { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem; padding-top: 1.5rem; border-top: 1px solid #eee; }
-        .btn { padding: 0.75rem 1.5rem; border-radius: 3px; border: 1px solid transparent; font-weight: bold; cursor: pointer; transition: background-color 0.2s ease; text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; }
-        .btn.btn-primary { background: var(--primary-red); color: white; border-color: var(--primary-red); }
-        .btn.btn-primary:hover { background: #a20c24; }
-        .btn.btn-secondary { background: #e9e9e9; color: #333; border: 1px solid var(--border); }
-        .btn.btn-secondary:hover { background: #dcdcdc; }
-
-        .form-errors { color: var(--primary-red); font-size: 0.85rem; margin-top: 0.25rem; }
-
-        /* NOVO: Estilo para campos de destino lado a lado */
-        .destino-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        .alert-info { background: #e7f3ff; border: 1px solid #b3d9ff; border-left: 4px solid #0066cc; padding: 1rem; border-radius: 3px; margin-bottom: 1rem; font-size: 0.85rem; }
-
-        @media (max-width: 768px) {
-            .destino-row { grid-template-columns: 1fr; }
-        }
-</style>
+    <title>Encaminhar Documento - SGA Aurora</title>
 </head>
-<body>
+<body class="h-full">
     {% include "menu.html" %}
 
-    <div class="container">
-        <div class="form-container">
-            <h3>Encaminhar Documento</h3>
-            
-            <form class="document-form" method="post">
+    <main class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        
+        <!-- Header de Retorno -->
+        <div class="mb-8">
+            <button onclick="window.history.back()" class="group inline-flex items-center gap-2 text-slate-400 hover:text-sga-red transition-colors font-bold text-sm">
+                <i data-lucide="arrow-left" class="w-4 h-4 transition-transform group-hover:-translate-x-1"></i>
+                Voltar aos Detalhes
+            </button>
+        </div>
+
+        <!-- Card de Encaminhamento -->
+        <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/60 border border-slate-100 overflow-hidden transform transition-all">
+            <div class="px-10 py-8 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-red-50 text-sga-red rounded-2xl shadow-sm ring-1 ring-red-100">
+                        <i data-lucide="send" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-800 tracking-tight">Nova Tramitação</h2>
+                        <p class="text-[11px] font-black uppercase tracking-widest text-slate-400 mt-0.5">Definir fluxo de destino</p>
+                    </div>
+                </div>
+            </div>
+
+            <form class="p-10 space-y-8" method="post">
                 {% csrf_token %}
                 
-                <div class="form-group">
-                    <label class="form-label" for="{{ form.tipo_movimentacao.id_for_label }}">Tipo de Movimentação</label>
-                    {{ form.tipo_movimentacao }}
-                </div>
-
-                <div class="alert-info">
-                    <strong>ℹ️ Escolha o destino:</strong>
-                    Selecione <strong>APENAS UM</strong> destino (departamento <strong>OU</strong> secção específica).
-                </div>
-
-                <div class="destino-row">
-                    <div class="form-group">
-                        <label class="form-label" for="{{ form.departamento_destino.id_for_label }}">
-                            {{ form.departamento_destino.label }}
-                        </label>
-                        {{ form.departamento_destino }}
-                        <div class="form-help">Para encaminhar ao departamento como um todo</div>
-                        {% if form.departamento_destino.errors %}
-                            <div class="form-errors">{{ form.departamento_destino.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="{{ form.seccao_destino.id_for_label }}">
-                            {{ form.seccao_destino.label }}
-                        </label>
-                        {{ form.seccao_destino }}
-                        <div class="form-help">Para encaminhar a uma secção específica</div>
-                        {% if form.seccao_destino.errors %}
-                            <div class="form-errors">{{ form.seccao_destino.errors }}</div>
-                        {% endif %}
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Modalidade de Envio</label>
+                    <div class="relative group">
+                        {{ form.tipo_movimentacao }}
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="{{ form.observacoes.id_for_label }}">Observações / Parecer</label>
-                    {{ form.observacoes }}
+                <div class="p-6 bg-slate-900 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
+                    <div class="flex items-center gap-2 mb-2 px-2">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-sga-red"></i>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Destinação Oficial</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-2">
+                        <div class="space-y-2 group/field">
+                            <label class="text-[10px] font-bold text-slate-300 uppercase tracking-wider block ml-1 transition-colors group-focus-within/field:text-sga-red">
+                                {{ form.departamento_destino.label }}
+                            </label>
+                            {{ form.departamento_destino }}
+                            <p class="form-help text-[9px] text-slate-500 font-bold italic mt-2 px-1">Gabinete Central</p>
+                            {% if form.departamento_destino.errors %}
+                                <div class="text-[10px] text-red-400 font-bold mt-1 px-1">{{ form.departamento_destino.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="space-y-2 group/field">
+                            <label class="text-[10px] font-bold text-slate-300 uppercase tracking-wider block ml-1 transition-colors group-focus-within/field:text-emerald-400">
+                                {{ form.seccao_destino.label }}
+                            </label>
+                            {{ form.seccao_destino }}
+                            <p class="form-help text-[9px] text-slate-500 font-bold italic mt-2 px-1">Secção Especializada</p>
+                            {% if form.seccao_destino.errors %}
+                                <div class="text-[10px] text-red-400 font-bold mt-1 px-1">{{ form.seccao_destino.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="px-2 pb-2">
+                        <div class="flex items-center gap-3 p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50">
+                            <i data-lucide="info" class="w-4 h-4 text-sga-red flex-shrink-0"></i>
+                            <p class="text-[10px] text-slate-400 leading-relaxed font-medium">
+                                Seleccione <span class="text-white font-bold">apenas um</span> destino. O sistema prioriza a unidade técnica quando ambos são preenchidos.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Observações / Parecer Técnico</label>
+                    <div class="relative">
+                         {{ form.observacoes }}
+                         <div class="absolute right-4 bottom-4 pointer-events-none opacity-20">
+                             <i data-lucide="pen-tool" class="w-5 h-5"></i>
+                         </div>
+                    </div>
                     {% if form.observacoes.errors %}
-                        <div class="form-errors">{{ form.observacoes.errors }}</div>
+                        <div class="text-[10px] text-red-500 font-bold mt-1">{{ form.observacoes.errors }}</div>
                     {% endif %}
                 </div>
 
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="window.history.back()">
-                        ❌ Cancelar
+                <div class="pt-6 border-t border-slate-50 flex flex-col md:flex-row gap-4">
+                    <button type="submit" class="flex-1 bg-sga-red hover:bg-red-700 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all transform active:scale-[0.98] shadow-2xl shadow-red-200/50 flex items-center justify-center gap-3">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                        Confirmar Reencaminhamento
                     </button>
-                    <button type="submit" class="btn btn-primary">
-                        📨 Encaminhar Documento
+                    <button type="button" onclick="window.history.back()" class="md:w-48 bg-slate-100 hover:bg-slate-200 text-slate-600 py-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">
+                        Cancelar
                     </button>
                 </div>
             </form>
         </div>
-    </div>
+    </main>
 
-    <!-- Select2 CSS e JS -->
+    <!-- Scripts -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     
-    <style>
-        .select2-container--default .select2-selection--single { height: 42px; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 3px; }
-        .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 24px; color: #333; }
-        .select2-container--default .select2-selection--single .select2-selection__arrow { height: 40px; }
-        .select2-container { width: 100% !important; }
-    </style>
-    
     <script>
-        $(document).ready(function() {
-            // Adicionar classes aos campos
-            $('select, textarea').addClass('form-select');
-            $('textarea').addClass('form-textarea');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar Lucide
+            if (window.lucide) { lucide.createIcons(); }
+
+            // Estilizar inputs via JS (Light Theme)
+            document.querySelectorAll('input:not([type="hidden"]), select, textarea').forEach(el => {
+                const isDarkSubject = el.closest('.bg-slate-900');
+                if (!el.classList.contains('select2-hidden-accessible')) {
+                    if (isDarkSubject) {
+                        el.className = "block w-full px-5 py-4 bg-slate-800 border-2 border-transparent focus:bg-slate-700 focus:ring-4 focus:ring-sga-red/20 focus:border-sga-red rounded-2xl text-sm font-semibold transition-all outline-none text-white";
+                    } else {
+                        el.className = "block w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:ring-4 focus:ring-sga-red/10 focus:border-sga-red/40 rounded-2xl text-sm font-semibold transition-all outline-none";
+                    }
+                }
+            });
 
             // Inicializar Select2
-            $('select').select2({
-                placeholder: 'Pesquisar...',
-                allowClear: true,
-                language: { noResults: function() { return "Nenhum resultado encontrado"; } }
-            });
+            $(document).ready(function() {
+                $('select').select2({
+                    placeholder: 'Pesquisar destino...',
+                    width: '100%'
+                });
 
-            // Lógica de Independência e Exclusividade Mútua (Select2-Aware)
-            const $deptSelect = $('select[name="departamento_destino"]');
-            const $seccaoSelect = $('select[name="seccao_destino"]');
+                // CSS customizado para Select2 (Aurora Premium)
+                $("<style>").prop("type", "text/css").html(`
+                    /* Global Select2 Aurora Styles */
+                    .select2-container--default .select2-selection--single {
+                        background-color: #ffffff;
+                        border: 2px solid #f1f5f9;
+                        border-radius: 12px;
+                        height: 52px;
+                        padding: 10px 16px;
+                        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    }
+                    .select2-container--default.select2-container--focus .select2-selection--single {
+                        border-color: #c8102e;
+                        background-color: #ffffff;
+                        box-shadow: 0 0 0 4px rgba(200, 16, 46, 0.05);
+                    }
+                    .select2-container--default .select2-selection--single .select2-selection__rendered {
+                        color: #0f172a;
+                        font-weight: 600;
+                        font-size: 0.875rem;
+                        line-height: normal;
+                    }
+                    .select2-container--default .select2-selection--single .select2-selection__arrow {
+                        height: 50px;
+                        right: 12px;
+                    }
+                    
+                    /* Dark Context Select2 Override */
+                    .bg-slate-900 .select2-container--default .select2-selection--single {
+                        background-color: #1e293b;
+                        border-color: #334155;
+                    }
+                    .bg-slate-900 .select2-container--default .select2-selection--single .select2-selection__rendered {
+                        color: #f8fafc;
+                    }
 
-            function handleExclusivity() {
-                const deptVal = $deptSelect.val();
-                const seccaoVal = $seccaoSelect.val();
+                    /* Dropdown Results */
+                    .select2-dropdown {
+                        border: none;
+                        border-radius: 16px;
+                        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                        margin-top: 8px;
+                        overflow: hidden;
+                    }
+                    .select2-results__option--highlighted[aria-selected] {
+                        background-color: #fef2f2 !important;
+                        color: #c8102e !important;
+                    }
+                    .select2-results__option {
+                        padding: 12px 16px;
+                        font-size: 0.875rem;
+                        font-weight: 500;
+                        color: #475569;
+                    }
+                `).appendTo("head");
 
-                if (deptVal) {
-                    $seccaoSelect.prop('disabled', true);
-                    $seccaoSelect.next('.select2-container').css('opacity', '0.5');
-                    $seccaoSelect.next('.select2-container').find('.select2-selection').css('background-color', '#f9fafb');
-                    $seccaoSelect.closest('.form-group').find('.form-help').text('⚠️ Bloqueado: Departamento selecionado');
-                } else if (seccaoVal) {
-                    $deptSelect.prop('disabled', true);
-                    $deptSelect.next('.select2-container').css('opacity', '0.5');
-                    $deptSelect.next('.select2-container').find('.select2-selection').css('background-color', '#f9fafb');
-                    $deptSelect.closest('.form-group').find('.form-help').text('⚠️ Bloqueado: Secção selecionada');
-                } else {
-                    $deptSelect.prop('disabled', false).next('.select2-container').css('opacity', '1').find('.select2-selection').css('background-color', '#ffffff');
-                    $seccaoSelect.prop('disabled', false).next('.select2-container').css('opacity', '1').find('.select2-selection').css('background-color', '#ffffff');
-                    $deptSelect.closest('.form-group').find('.form-help').text('Para encaminhar ao departamento como um todo');
-                    $seccaoSelect.closest('.form-group').find('.form-help').text('Para encaminhar a uma secção específica');
+                const $deptSelect = $('select[name="departamento_destino"]');
+                const $seccaoSelect = $('select[name="seccao_destino"]');
+
+                function handleExclusivity() {
+                    const deptVal = $deptSelect.val();
+                    const seccaoVal = $seccaoSelect.val();
+
+                    if (deptVal) {
+                        $seccaoSelect.prop('disabled', true);
+                        $seccaoSelect.next('.select2-container').css('opacity', '0.2').css('pointer-events', 'none');
+                        $seccaoSelect.closest('.space-y-2').find('.form-help').text('⚠️ BLOQUEADO');
+                    } else if (seccaoVal) {
+                        $deptSelect.prop('disabled', true);
+                        $deptSelect.next('.select2-container').css('opacity', '0.2').css('pointer-events', 'none');
+                        $deptSelect.closest('.space-y-2').find('.form-help').text('⚠️ BLOQUEADO');
+                    } else {
+                        $deptSelect.prop('disabled', false).next('.select2-container').css('opacity', '1').css('pointer-events', 'auto');
+                        $seccaoSelect.prop('disabled', false).next('.select2-container').css('opacity', '1').css('pointer-events', 'auto');
+                        $deptSelect.closest('.space-y-2').find('.form-help').text('Gabinete Central');
+                        $seccaoSelect.closest('.space-y-2').find('.form-help').text('Secção Especializada');
+                    }
                 }
-            }
 
-            $deptSelect.on('change', handleExclusivity);
-            $seccaoSelect.on('change', handleExclusivity);
+                $deptSelect.on('change', handleExclusivity);
+                $seccaoSelect.on('change', handleExclusivity);
+                
+                // Allow submitting disabled fields
+                $('form').on('submit', function() {
+                    $deptSelect.prop('disabled', false);
+                    $seccaoSelect.prop('disabled', false);
+                });
 
-            $('form').on('submit', function() {
-                $deptSelect.prop('disabled', false);
-                $seccaoSelect.prop('disabled', false);
+                setTimeout(handleExclusivity, 100);
             });
-
-            setTimeout(handleExclusivity, 100);
         });
     </script>
 </body>

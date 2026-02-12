@@ -1,110 +1,184 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard do Departamento - SGA</title>
-    <style>
-        /* Estilos base da sua aplicação (reutilizados) */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --primary-red: #c8102e; --bg-primary: #f4f4f4; --bg-secondary: #ffffff;
-            --border: #e2e8f0; --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
-            --info-blue: #3b82f6; --warning-yellow: #f59e0b; --success-green: #16a34a;
-            --secondary-grey: #6b7280; --text-dark: #1f2937;
-        }
-        body { font-family: Arial, Helvetica, sans-serif; background: var(--bg-primary); color: #333; line-height: 1.6; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-        
-        /* Estilos específicos do Dashboard */
-        .dashboard-header {
-            margin-bottom: 2rem;
-        }
-        .dashboard-header h2 {
-            font-size: 1.8rem;
-            color: var(--text-dark);
-        }
-        .dashboard-header .text-muted {
-            font-size: 1rem;
-            color: var(--secondary-grey);
-        }
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
-        .stat-card {
-            background-color: var(--bg-secondary);
-            padding: 1.5rem;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            text-decoration: none;
-            color: var(--text-dark);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        .stat-card .card-title {
-            font-size: 1rem;
-            font-weight: bold;
-            color: var(--secondary-grey);
-            margin-bottom: 0.5rem;
-        }
-        .stat-card .card-value {
-            font-size: 2.5rem;
-            font-weight: bold;
-        }
-        .pendentes { color: var(--warning-yellow); }
-        .encaminhados { color: var(--info-blue); }
-        .registados { color: var(--success-green); }
-        .total { color: var(--text-dark); }
-        .mortos { color: var(--primary-red); }
-    </style>
+    <title>Painel de Controle - SGA Aurora</title>
 </head>
-<body>
+<body class="h-full">
     {% include "menu.html" %}
 
-    <div class="container">
-        <div class="dashboard-header">
-            <h2>Dashboard do Departamento</h2>
-            <p class="text-muted">Estatísticas de hoje para: <strong>{{ departamento_nome }}</strong></p>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        
+        <!-- Header do Dashboard -->
+        <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+                <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight font-display">
+                    Painel de Controle
+                </h2>
+                <p class="text-slate-500 font-medium mt-1">
+                    Estatísticas consolidadas para <span class="text-sga-red font-bold underline decoration-red-200 underline-offset-4">{{ departamento_nome }}</span>
+                </p>
+            </div>
+            <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100">
+                <i data-lucide="calendar" class="w-4 h-4 text-slate-400"></i>
+                <span class="text-xs font-bold text-slate-600 uppercase tracking-widest">
+                    {% now "d \d\e F, Y" %}
+                </span>
+            </div>
         </div>
 
-        <div class="dashboard-grid">
-            <a href="{% url 'pendencias' %}?status=em_analise" class="stat-card">
-                <div class="card-title">PENDENTES</div>
-                <div class="card-value pendentes">{{ documentos_pendentes }}</div>
+        <!-- Grid de Estatísticas Principais -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <!-- Card: Pendentes -->
+            <a href="{% url 'pendencias' %}?status=em_analise" class="group relative bg-white p-1 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-slate-100 hover:border-amber-200 overflow-hidden">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                <div class="relative p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-amber-100 text-amber-600 rounded-xl">
+                            <i data-lucide="clock" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-amber-500 bg-amber-50 px-2 py-1 rounded-md">Pendente</span>
+                    </div>
+                    <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Aguardando Recebimento</h3>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-4xl font-black text-slate-800 leading-none">{{ documentos_pendentes }}</span>
+                        <span class="text-slate-400 text-xs font-semibold">Docs</span>
+                    </div>
+                </div>
             </a>
 
-            <a href="{% url 'listar_documentos' %}?filtro=novos" class="stat-card">
-                <div class="card-title">ENCAMINHADOS HOJE</div>
-                <div class="card-value encaminhados">{{ documentos_encaminhados_hoje }}</div>
+            <!-- Card: Encaminhados -->
+            <a href="{% url 'listar_documentos' %}?filtro=novos" class="group relative bg-white p-1 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-slate-100 hover:border-blue-200 overflow-hidden">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                <div class="relative p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-blue-100 text-blue-600 rounded-xl">
+                            <i data-lucide="send" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-blue-500 bg-blue-50 px-2 py-1 rounded-md">Hoje</span>
+                    </div>
+                    <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Encaminhados recentemente</h3>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-4xl font-black text-slate-800 leading-none">{{ documentos_encaminhados_hoje }}</span>
+                        <span class="text-slate-400 text-xs font-semibold">Fluxos</span>
+                    </div>
+                </div>
             </a>
 
-            <a href="{% url 'listar_documentos' %}?filtro=novos" class="stat-card">
-                <div class="card-title">REGISTADOS HOJE</div>
-                <div class="card-value registados">{{ documentos_registados_hoje }}</div>
+            <!-- Card: Registados -->
+            <a href="{% url 'listar_documentos' %}?filtro=novos" class="group relative bg-white p-1 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-slate-100 hover:border-emerald-200 overflow-hidden">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                <div class="relative p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-emerald-100 text-emerald-600 rounded-xl">
+                            <i data-lucide="file-plus-2" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-50 px-2 py-1 rounded-md">Novo</span>
+                    </div>
+                    <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Registados (Hoje)</h3>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-4xl font-black text-slate-800 leading-none">{{ documentos_registados_hoje }}</span>
+                        <span class="text-slate-400 text-xs font-semibold">Arquivos</span>
+                    </div>
+                </div>
             </a>
 
-            <!-- Novos Cartões de Localização (Posse vs Histórico) -->
-            <a href="{% url 'listar_documentos' %}?local=posse" class="stat-card">
-                <div class="card-title">POSSE ATUAL</div>
-                <div class="card-value total" style="color: var(--success-green);">{{ doc_posse }}</div>
+            <!-- Card: Posse -->
+            <a href="{% url 'listar_documentos' %}?local=posse" class="group relative bg-white p-1 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-slate-100 hover:border-indigo-200 lg:col-span-1 overflow-hidden">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                <div class="relative p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-indigo-100 text-indigo-600 rounded-xl">
+                            <i data-lucide="briefcase" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-indigo-500 bg-indigo-50 px-2 py-1 rounded-md">Ativo</span>
+                    </div>
+                    <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Em posse da área</h3>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-4xl font-black text-slate-800 leading-none">{{ doc_posse }}</span>
+                        <span class="text-slate-400 text-xs font-semibold">Documentos</span>
+                    </div>
+                </div>
             </a>
 
-            <a href="{% url 'listar_documentos' %}?local=historico" class="stat-card">
-                <div class="card-title">HISTÓRICO (JÁ TRAMITADOS)</div>
-                <div class="card-value total" style="color: var(--accent-gold);">{{ doc_historico }}</div>
+            <!-- Card: Histórico -->
+            <a href="{% url 'listar_documentos' %}?local=historico" class="group relative bg-white p-1 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-slate-100 hover:border-slate-300 lg:col-span-1 overflow-hidden">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-slate-100 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                <div class="relative p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-slate-200 text-slate-600 rounded-xl">
+                            <i data-lucide="history" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-2 py-1 rounded-md">Passado</span>
+                    </div>
+                    <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Histórico de Tramitação</h3>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-4xl font-black text-slate-800 leading-none">{{ doc_historico }}</span>
+                        <span class="text-slate-400 text-xs font-semibold">Processos</span>
+                    </div>
+                </div>
             </a>
 
-            <a href="{% url 'arquivo_morto' %}" class="stat-card">
-                <div class="card-title">DOCUMENTOS MORTOS</div>
-                <div class="card-value mortos">{{ documentos_mortos }}</div>
+            <!-- Card: Arquivo Morto -->
+            <a href="{% url 'arquivo_morto' %}" class="group relative bg-white p-1 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-slate-100 hover:border-red-200 lg:col-span-1 overflow-hidden">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                <div class="relative p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-red-100 text-red-600 rounded-xl">
+                            <i data-lucide="archive" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-red-500 bg-red-50 px-2 py-1 rounded-md">Finalizado</span>
+                    </div>
+                    <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Arquivo Morto / Concluídos</h3>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-4xl font-black text-slate-800 leading-none">{{ documentos_mortos }}</span>
+                        <span class="text-slate-400 text-xs font-semibold">Itens</span>
+                    </div>
+                </div>
             </a>
+
         </div>
-    </div>
+
+        <!-- Seção de Atalhos Rápidos -->
+        <div class="mt-12">
+            <h3 class="text-lg font-bold text-slate-700 font-display mb-6 flex items-center gap-2">
+                <i data-lucide="zap" class="w-5 h-5 text-sga-gold"></i> Operações Rápidas
+            </h3>
+            <div class="flex flex-wrap gap-4">
+                <a href="{% url 'criar_documento' %}" class="flex items-center gap-3 px-6 py-4 bg-sga-red/5 hover:bg-sga-red text-sga-red hover:text-white border border-sga-red/20 hover:border-sga-red rounded-2xl font-bold transition-all group">
+                    <i data-lucide="plus-circle" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Novo Expediente
+                </a>
+                <a href="{% url 'listar_documentos' %}" class="flex items-center gap-3 px-6 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-2xl font-bold transition-all group">
+                    <i data-lucide="search" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Consultar Base
+                </a>
+                <a href="{% url 'listar_armazenamentos' %}" class="flex items-center gap-3 px-6 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-2xl font-bold transition-all group">
+                    <i data-lucide="layers" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Gestão de Arquivos
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 mt-10 border-t border-slate-100">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+            <p class="text-slate-400 text-sm font-medium">
+                &copy; {% now "Y" %} SGA Aurora - Sistema de Gestão de Arquivos Administrativos.
+            </p>
+            <div class="flex items-center gap-4">
+                <span class="text-[10px] font-black uppercase tracking-widest text-slate-300 border border-slate-200 px-3 py-1 rounded-full">v2.0.0 Stable</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Refresh icons after render
+        document.addEventListener('DOMContentLoaded', () => {
+             if (window.lucide) {
+                lucide.createIcons();
+             }
+        });
+    </script>
 </body>
 </html>

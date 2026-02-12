@@ -1,124 +1,266 @@
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/main.css' %}">
+<!-- SGA Aurora - Modern Font & Base Styles -->
+<link rel="stylesheet" href="{% static 'css/base_modern.css' %}">
 <link rel="stylesheet" href="{% static 'css/toastify.min.css' %}">
-<script src="{% static 'js/toastify.min.js' %}"></script>
-    <header class="header">
-        <div class="header-content">
-            <div class="logo-area">
-                <a href="{% url 'Painel' %}"><div class="logo">sigap<span class="orange-text">.gov.ao</span></div></a>
-                
-                {% if user.is_authenticated %}
-                    <div class="dept-header-label">
-                        {% if user.departamento %}
-                            {{ user.departamento.nome }}
-                        {% elif user.seccao %}
-                            {{ user.seccao.nome }}
-                        {% endif %}
+
+<!-- Essential Scripts -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    sga: {
+                        red: '#c8102e',
+                        gold: '#daa520',
+                        blue: '#3b82f6',
+                        'slate-alt': '#f1f5f9'
+                    }
+                }
+            }
+        }
+    }
+</script>
+
+<style>
+    [x-cloak] { display: none !important; }
+    .glass-header {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+</style>
+
+<header 
+    x-data="{ mobileMenuOpen: false, notificationsOpen: false, userMenuOpen: false }"
+    class="glass-header sticky top-0 z-50 w-full"
+>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-20">
+            
+            <!-- Logo Area -->
+            <div class="flex items-center gap-4">
+                <a href="{% url 'Painel' %}" class="flex flex-col group">
+                    <div class="text-2xl font-extrabold tracking-tight text-slate-600 group-hover:text-sga-red transition-colors">
+                        sigap<span class="text-sga-red">.gov.ao</span>
                     </div>
-                {% endif %}
+                    {% if user.is_authenticated %}
+                        <span class="text-[10px] uppercase tracking-widest text-slate-400 font-semibold leading-tight">
+                            {% if user.seccao %}{{ user.seccao.nome }}{% elif user.departamento %}{{ user.departamento.nome }}{% endif %}
+                        </span>
+                    {% endif %}
+                </a>
             </div>
 
-            {% if user.is_authenticated and user.administracao %}
-                <div class="admin-header-label">
-                            {% if user.is_staff %}
-                                <a href="/Painel-Control/" title="Painel Administrativo">{{ user.username }}</a>
-                            {% else %}
-                                <span>{{ user.username }}</span>
-                            {% endif %}
-                       -
-                         {% if user.nivel_acesso == 'admin_sistema' %}
-                            <a href="{% url 'gestao_usuarios' %}" title="Gestão de Usuários" style="text-decoration: underline;">{{ user.administracao.nome }}</a>
-                         {% else %}
-                            {{ user.administracao.nome }}
-                         {% endif %}
-                         <br>
-                    
-                </div>
-            {% endif %}
-            <div class="header-right">
-                <nav class="main-nav" id="main-nav">
-                    <ul>
-                        <li><a href="{% url 'criar_documento' %}">Registo de Entrada</a></li>
-                        <li><a href="{% url 'listar_documentos' %}">Expedientes</a></li>
-                        <li><a href="{% url 'pendencias' %}">Pendentes</a></li>
-                        <li><a href="{% url 'arquivo_morto' %}">Arquivo Morto</a></li>
-                        <li><a href="{% url 'listar_armazenamentos' %}">Armazenamento</a></li>
-                        <li><a href="{% url 'logout' %}" class="">Sair</a></li>
+            <!-- Desktop Navigation -->
+            <nav class="hidden lg:flex items-center space-x-1">
+                <a href="{% url 'criar_documento' %}" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-sga-red hover:bg-slate-50 rounded-lg transition-all">Registo</a>
+                <a href="{% url 'listar_documentos' %}" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-sga-red hover:bg-slate-50 rounded-lg transition-all">Expedientes</a>
+                <a href="{% url 'pendencias' %}" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-sga-red hover:bg-slate-50 rounded-lg transition-all">Pendentes</a>
+                <a href="{% url 'arquivo_morto' %}" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-sga-red hover:bg-slate-50 rounded-lg transition-all">Arquivo Morto</a>
+                <a href="{% url 'listar_armazenamentos' %}" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-sga-red hover:bg-slate-50 rounded-lg transition-all">Armazenamento</a>
+            </nav>
 
-
-                    </ul>
-                </nav>
-                <div class="header-actions">
-                    {% if user.is_authenticated %}
-                       
-                        <div class="notification-bell" id="notificationBell">
-                            <span>🔔</span>
+            <!-- Actions Area -->
+            <div class="flex items-center gap-3">
+                
+                {% if user.is_authenticated %}
+                    <!-- Notifications -->
+                    <div class="relative">
+                        <button 
+                            @click="notificationsOpen = !notificationsOpen" 
+                            class="relative p-2.5 text-slate-400 hover:text-sga-red hover:bg-red-50 rounded-xl transition-all"
+                            id="notificationBell"
+                        >
+                            <i data-lucide="bell" class="w-5 h-5"></i>
                             {% if unread_notifications_count > 0 %}
-                                <div class="notification-count" id="notificationCount">{{ unread_notifications_count }}</div>
+                                <span class="notification-badge-wrap absolute -top-0.5 -right-0.5 flex h-5 w-5">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sga-red opacity-60"></span>
+                                    <span id="notificationCount" class="relative inline-flex rounded-full h-5 w-5 bg-sga-red items-center justify-center text-[10px] text-white font-black">{{ unread_notifications_count }}</span>
+                                </span>
                             {% endif %}
-                            <div class="notifications-dropdown" id="notificationsDropdown">
-                                <div style="padding: 1rem; font-weight: bold; border-bottom: 1px solid #eee;">Notificações</div>
+                        </button>
+
+                        <!-- Notifications Dropdown -->
+                        <div 
+                            x-show="notificationsOpen"
+                            x-cloak
+                            @click.away="notificationsOpen = false"
+                            x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="opacity-0 translate-y-2 scale-95"
+                            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                            x-transition:leave="transition ease-in duration-150"
+                            x-transition:leave-start="opacity-100 scale-100"
+                            x-transition:leave-end="opacity-0 scale-95"
+                            class="absolute right-0 mt-3 w-[360px] bg-white rounded-2xl shadow-2xl shadow-slate-200/80 overflow-hidden border border-slate-100"
+                            id="notificationsDropdown"
+                        >
+                            <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/60">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="bell" class="w-4 h-4 text-sga-red"></i>
+                                    <h3 class="text-[11px] font-black uppercase tracking-widest text-slate-500">Notificações</h3>
+                                </div>
+                                <span class="text-[10px] px-2.5 py-1 bg-sga-red/10 text-sga-red rounded-lg font-black">{{ unread_notifications_count }} Nova{% if unread_notifications_count != 1 %}s{% endif %}</span>
+                            </div>
+                            <div class="max-h-[400px] overflow-y-auto notification-list">
                                 {% for notification in recent_notifications %}
-                                    <div class="notification-item {% if not notification.lida %}unread{% endif %}" data-id="{{ notification.id }}">
-                                        <div class="notification-content">
-                                            <span class="notification-message">{{ notification.mensagem }}</span>
-                                            <div class="notification-meta">
-                                                <small class="notification-time">{{ notification.data_criacao|timesince }} atrás</small>
-                                                <a href="{{ notification.link }}" class="notification-action">Abrir Documento ➔</a>
+                                    <div 
+                                        class="notification-item group p-4 border-b border-slate-50 hover:bg-slate-50/80 transition-colors flex gap-3 cursor-pointer"
+                                        data-id="{{ notification.id }}"
+                                    >
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-[13px] text-slate-700 font-semibold leading-tight group-hover:text-slate-900 truncate">{{ notification.mensagem }}</p>
+                                            <div class="mt-2 flex items-center justify-between">
+                                                <span class="text-[11px] text-slate-400 font-medium italic">{{ notification.data_criacao|timesince }} atrás</span>
+                                                <a href="{{ notification.link }}" class="notification-action text-[11px] font-bold text-sga-red hover:underline flex items-center gap-1">
+                                                    Abrir <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                                                </a>
                                             </div>
                                         </div>
                                         {% if not notification.lida %}
-                                            <div class="unread-indicator"></div>
+                                            <span class="unread-indicator w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0 shadow-sm shadow-blue-200 animate-pulse"></span>
                                         {% endif %}
                                     </div>
                                 {% empty %}
-                                    <div style="padding: 1rem; text-align: center;">Nenhuma notificação.</div>
+                                    <div class="p-10 text-center">
+                                        <i data-lucide="inbox" class="w-10 h-10 text-slate-200 mx-auto mb-3"></i>
+                                        <p class="text-sm text-slate-400 font-medium">Nenhuma notificação</p>
+                                        <p class="text-[10px] text-slate-300 font-medium mt-1">Tudo em dia por aqui</p>
+                                    </div>
                                 {% endfor %}
                             </div>
                         </div>
-                    {% else %}
-                        <a href="#" class="btn-header btn-login">Entrar</a>
-                    {% endif %}
-                    <div class="menu-icons">
-                        <button class="hamburger-menu" id="hamburger-menu" aria-label="Menu">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                        </button>
                     </div>
-                </div>
+
+                    <!-- User Menu -->
+                    <div class="relative ml-2">
+                        <button 
+                            @click="userMenuOpen = !userMenuOpen"
+                            class="flex items-center gap-3 p-1 rounded-full hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200"
+                        >
+                            <div class="w-9 h-9 bg-gradient-to-tr from-sga-red to-red-400 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white ring-offset-1">
+                                {{ user.username|slice:":1"|upper }}
+                            </div>
+                            <div class="hidden md:flex flex-col items-start pr-2">
+                                <span class="text-xs font-bold text-slate-700 leading-none">{{ user.username }}</span>
+                                <span class="text-[10px] text-slate-400 font-medium mt-0.5">{{ user.administracao.nome|truncatechars:15 }}</span>
+                            </div>
+                        </button>
+
+                        <!-- User Dropdown -->
+                        <div 
+                            x-show="userMenuOpen"
+                            x-cloak
+                            @click.away="userMenuOpen = false"
+                            class="absolute right-0 mt-3 w-56 glass rounded-xl shadow-2xl overflow-hidden ring-1 ring-black ring-opacity-5"
+                        >
+                            <div class="p-2 space-y-1">
+                                {% if user.nivel_acesso == 'admin_sistema' %}
+                                    <a href="{% url 'gestao_usuarios' %}" class="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-600 hover:text-sga-red hover:bg-slate-50 rounded-lg transition-colors">
+                                        <i data-lucide="users" class="w-4 h-4"></i> Gestão de Usuários
+                                    </a>
+                                {% endif %}
+                                {% if user.is_staff %}
+                                    <a href="/Painel-Control/" class="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-600 hover:text-sga-red hover:bg-slate-50 rounded-lg transition-colors">
+                                        <i data-lucide="settings" class="w-4 h-4"></i> Administração
+                                    </a>
+                                {% endif %}
+                                <div class="h-px bg-slate-100 my-1"></div>
+                                <a href="{% url 'logout' %}" class="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                    <i data-lucide="log-out" class="w-4 h-4"></i> Sair do Sistema
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Menu Button -->
+                    <button 
+                        @click="mobileMenuOpen = !mobileMenuOpen"
+                        class="lg:hidden p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-all"
+                    >
+                        <i x-show="!mobileMenuOpen" data-lucide="menu-left" class="w-7 h-7"></i>
+                        <i x-show="mobileMenuOpen" data-lucide="x" x-cloak class="w-7 h-7"></i>
+                    </button>
+
+                {% else %}
+                    <a href="{% url 'login' %}" class="px-6 py-2 bg-sga-red hover:bg-sga-red-hover text-white rounded-lg font-bold text-sm shadow-lg shadow-red-200 transition-all">Entrar</a>
+                {% endif %}
+
             </div>
         </div>
-    </header>
+    </div>
 
+    <!-- Mobile Navigation -->
+    <div 
+        x-show="mobileMenuOpen" 
+        x-cloak
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 -translate-y-4"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        class="lg:hidden glass border-t border-slate-100 overflow-hidden"
+    >
+        <nav class="px-4 py-4 space-y-1">
+            <a href="{% url 'criar_documento' %}" class="flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-600 hover:text-sga-red hover:bg-slate-50 rounded-xl transition-all">
+                <i data-lucide="file-plus" class="w-5 h-5"></i> Registo de Entrada
+            </a>
+            <a href="{% url 'listar_documentos' %}" class="flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-600 hover:text-sga-red hover:bg-slate-50 rounded-xl transition-all">
+                <i data-lucide="files" class="w-5 h-5"></i> Expedientes
+            </a>
+            <a href="{% url 'pendencias' %}" class="flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-600 hover:text-sga-red hover:bg-slate-50 rounded-xl transition-all">
+                <i data-lucide="clock" class="w-5 h-5"></i> Pendentes
+            </a>
+            <a href="{% url 'arquivo_morto' %}" class="flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-600 hover:text-sga-red hover:bg-slate-50 rounded-xl transition-all">
+                <i data-lucide="archive" class="w-5 h-5"></i> Arquivo Morto
+            </a>
+            <a href="{% url 'listar_armazenamentos' %}" class="flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-600 hover:text-sga-red hover:bg-slate-50 rounded-xl transition-all">
+                <i data-lucide="box" class="w-5 h-5"></i> Armazenamento
+            </a>
+        </nav>
+    </div>
+</header>
 
+<!-- Global Toast Container Wrapper -->
+{% if messages %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% for message in messages %}
+            Toastify({
+                text: "{{ message }}",
+                duration: 5000,
+                gravity: "top", 
+                position: "right", 
+                className: "modern-toast",
+                stopOnFocus: true,
+                style: {
+                    background: "{% if message.tags == 'error' %}#ef4444{% elif message.tags == 'success' %}#22c55e{% elif message.tags == 'warning' %}#f59e0b{% else %}#3b82f6{% endif %}",
+                    borderRadius: "12px",
+                    boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                    fontFamily: "Inter, sans-serif",
+                    fontWeight: "600"
+                }
+            }).showToast();
+        {% endfor %}
+    });
+</script>
+{% endif %}
 
-    {% if messages %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            {% for message in messages %}
-                Toastify({
-                    text: "{{ message }}",
-                    duration: 5000,
-                    gravity: "top", 
-                    position: "right", 
-                    className: "toast-{{ message.tags }}",
-                    stopOnFocus: true,
-                    style: {
-                        background: "{% if message.tags == 'error' %}#ef4444{% elif message.tags == 'success' %}#22c55e{% elif message.tags == 'warning' %}#f59e0b{% else %}#3b82f6{% endif %}",
-                    }
-                }).showToast();
-            {% endfor %}
-        });
-    </script>
-    {% endif %}
+<script>
+    // Initialize Lucide Icons
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+    });
 
-    <script>
-        window.SGA_CONFIG = {
-            csrfToken: '{{ csrf_token }}',
-            markReadUrl: "{% url 'marcar_notificacoes_lidas' %}",
-            checkNotificationsUrl: "{% url 'verificar_notificacoes' %}",
-            wsUrl: (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host + '/ws/notificacoes/',
-            isAuthenticated: {{ user.is_authenticated|yesno:"true,false" }}
-        };
-    </script>
-    <script src="{% static 'js/main.js' %}"></script>
-    <script src="{% static 'js/notifications.js' %}"></script>
+    window.SGA_CONFIG = {
+        csrfToken: '{{ csrf_token }}',
+        markReadUrl: "{% url 'marcar_notificacoes_lidas' %}",
+        checkNotificationsUrl: "{% url 'verificar_notificacoes' %}",
+        wsUrl: (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host + '/ws/notificacoes/',
+        isAuthenticated: {{ user.is_authenticated|yesno:"true,false" }}
+    };
+</script>
+<script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/notifications.js' %}"></script>

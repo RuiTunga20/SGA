@@ -1,306 +1,357 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalhes do Documento - {{ documento.numero_protocolo }}</title>
-<style>
-    :root {
-        --primary-orange: red; --text-grey: #5a5a5a; --primary-red: #c8102e;
-        --accent-gold: #daa520; --bg-primary: #f4f4f4; --bg-secondary: #ffffff;
-        --border: #cccccc; --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
-        --success-green: #16a34a; --secondary-grey: #6b7280;
-    }
-    body { font-family: Arial, Helvetica, sans-serif; background: var(--bg-primary); color: #333; line-height: 1.6; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-    .content-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 3px; padding: 2rem; box-shadow: var(--shadow); margin-top: 2rem; }
-    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; color: var(--primary-red); font-size: 1.25rem; border-bottom: 1px solid #eee; padding-bottom: 1rem; }
-    .page-header h1 { font-size: 1.5rem; margin: 0; }
-    .page-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
-    .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
-    .detail-item .label { font-weight: bold; font-size: 0.9rem; }
-    .status-badge { padding: 0.2rem 0.6rem; border-radius: 3px; color: white; font-size: 0.8rem; font-weight: bold; }
-    .status-aprovado { background-color: var(--success-green); }
-    .status-reprovado { background-color: var(--primary-red); }
-    .status-arquivado { background-color: var(--secondary-grey); }
-    .status-recebido, .status-encaminhado { background-color: #3b82f6; }
-    .status-em_analise { background-color: #f59e0b; }
-    .timeline { list-style: none; padding: 0; }
-    .timeline-item { padding-bottom: 1.5rem; border-left: 2px solid var(--border); position: relative; padding-left: 1.5rem; }
-    .timeline-item::before { content: ''; position: absolute; left: -6px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary-red); }
-    
-    .despacho-text {
-        background-color: #f8f9fa;
-        border-left: 3px solid var(--accent-gold);
-        padding: 0.75rem 1rem;
-        margin-top: 0.5rem;
-        font-size: 0.9rem;
-        color: #333;
-        border-radius: 0 3px 3px 0;
-        white-space: pre-wrap;
-    }
-
-    .action-form .form-group { margin-bottom: 1rem; }
-    .form-label { font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 0.5rem; }
-    .form-select, .form-textarea { width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 3px; font-size: 1rem; font-family: Arial; }
-    .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2); }
-    .btn { padding: 0.75rem 1.5rem; border-radius: 3px; border: 1px solid transparent; font-weight: bold; cursor: pointer; text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; }
-    .btn-primary { background: var(--primary-red); color: white; }
-    .btn-primary:hover { background: #a20c24; }
-    .btn-success { background-color: var(--success-green); color: white; }
-    .btn-success:hover { background-color: #15803d; }
-    .btn-danger { background-color: var(--primary-red); color: white; }
-    .btn-secondary { background: #e9e9e9; color: #333; border: 1px solid var(--border); }
-    .btn-secondary:hover { background: #dcdcdc; }
-    .btn-archive { background-color: var(--secondary-grey); color: white; }
-    .btn-archive:hover { background-color: #4b5563; }
-    .final-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
-    .form-errors { color: var(--primary-red); font-size: 0.85rem; margin-top: 0.25rem; }
-
-    /* NOVO: Estilo para campos de destino lado a lado */
-    .destino-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .form-help { font-size: 0.8rem; color: var(--text-grey); margin-top: 0.25rem; }
-    .alert-info { background: #e7f3ff; border: 1px solid #b3d9ff; border-left: 4px solid #0066cc; padding: 1rem; border-radius: 3px; margin-bottom: 1rem; font-size: 0.85rem; }
-
-    @media (max-width: 992px) {
-        .page-grid { grid-template-columns: 1fr; }
-        .details-grid { grid-template-columns: 1fr; }
-        .destino-row { grid-template-columns: 1fr; }
-    }
-</style>
+    <title>Detalhes - {{ documento.numero_protocolo }} - SGA Aurora</title>
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 </head>
-<body>
+<body class="h-full">
     {% include "menu.html" %}
-    <div class="container">
-        <div class="content-card">
-            <div class="page-header">
-                <div><h1>{{ documento.titulo }}</h1></div>
-            </div>
-            <div class="page-grid">
-                <div class="main-column">
-                    <h4>Detalhes do Documento</h4>
-                    <hr style="margin: 1rem 0;">
-                    <div class="details-grid">
-                        <div class="detail-item"><div class="label">Protocolo</div><div class="value">{{ documento.numero_protocolo }}</div></div>
-                        <div class="detail-item"><div class="label">Tipo de Documento</div><div class="value">{{ documento.tipo_documento.nome }}</div></div>
-                        <div class="detail-item"><div class="label">Origem</div><div class="value">{{ documento.get_origem_display }}</div></div>
-                        <div class="detail-item"><div class="label">Prioridade</div><div class="value">{{ documento.get_prioridade_display }}</div></div>
-                        <div class="detail-item"><div class="label">Estado</div><div class="value"><span class="status-badge status-{{ documento.status }}">{{ documento.get_status_display }}</span></div></div>
-                        <div class="detail-item"><div class="label">Departamento Atual</div><div class="value">{{ documento.departamento_atual.nome }}</div></div>
-                        <div class="detail-item"><div class="label">Data</div><div class="value">{{ documento.data_criacao|date:"d/m/Y H:i" }}</div></div>
 
-                        {% if documento.arquivo %}
-                        <div class="detail-item">
-                            <div class="label">Ficheiro Anexo</div>
-                            <div class="value"><a href="{{ documento.arquivo.url }}" target="_blank" class="btn btn-secondary">📎 Ver Anexo</a></div>
-                        </div>
-                        {% endif %}
-
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        
+        <!-- Header da Página -->
+        <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="flex items-center gap-4">
+                <a href="{% url 'listar_documentos' %}" class="p-2 text-slate-400 hover:text-sga-red hover:bg-red-50 rounded-lg transition-all">
+                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                </a>
+                <div>
+                    <div class="flex items-center gap-3 mb-1">
+                        <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight font-display">
+                            {{ documento.titulo|truncatechars:50 }}
+                        </h2>
+                        <span class="px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-bold font-mono border border-slate-200 shadow-sm">
+                            {{ documento.numero_protocolo }}
+                        </span>
                     </div>
-                     <div class="detail-item">
-                          <div class="label">Pareceres</div>
-                     {% for observacoes in observacoes %}
-                         {% if observacoes.observacoes %}
-
-                      <div class="value">{{ observacoes.observacoes }} <br> {{ observacoes.usuario }} -
-
-                        {% if observacoes.usuario.departamento %}
-                          {{ observacoes.usuario.departamento }}
-                          {% else %}
-                           {{ observacoes.usuario.seccao }}
-
-                      {% endif %}
-
-
-                      </div>
-                                                     <hr style="margin: 1rem 0;">
-                     {% endif %}
-                            {% endfor %}
-
-                     </div>
-
-
-                    {% if pode_encaminhar %}
-                        <div class="action-form">
-                            <hr style="margin: 2rem 0;">
-                            <h4>Ações do Documento</h4>
-
-                            <form method="post" style="margin-top: 1rem;">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="encaminhar">
-                                {{ encaminhar_form.tipo_movimentacao.as_hidden }}
-                                <h5>Encaminhar Documento</h5>
-
-                                <!-- ALERTA INFORMATIVO -->
-                                <div class="alert-info">
-                                    <strong>ℹ️ Escolha o destino:</strong>
-                                    Selecione <strong>APENAS UM</strong> destino (departamento <strong>OU</strong> secção específica).
-                                </div>
-
-                                <!-- CAMPOS DE DESTINO LADO A LADO -->
-                                <div class="destino-row">
-                                    <div class="form-group">
-                                        <label for="{{ encaminhar_form.departamento_destino.id_for_label }}" class="form-label">
-                                            {{ encaminhar_form.departamento_destino.label }}
-                                        </label>
-                                        {{ encaminhar_form.departamento_destino }}
-                                        <div class="form-help">Para encaminhar ao departamento como um todo</div>
-                                        <div class="form-errors">{{ encaminhar_form.departamento_destino.errors }}</div>
-                                    </div>
-
-                                    <!-- NOVO: Campo de Secção -->
-                                    <div class="form-group">
-                                        <label for="{{ encaminhar_form.seccao_destino.id_for_label }}" class="form-label">
-                                            {{ encaminhar_form.seccao_destino.label }}
-                                            <span style="color: #16a34a; font-weight: bold;">(Recomendado)</span>
-                                        </label>
-                                        {{ encaminhar_form.seccao_destino }}
-                                        <div class="form-help">Para encaminhar a uma secção específica</div>
-                                        <div class="form-errors">{{ encaminhar_form.seccao_destino.errors }}</div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="{{ encaminhar_form.observacoes.id_for_label }}" class="form-label">Pareceres</label>
-                                    {{ encaminhar_form.observacoes }}
-                                    <div class="form-errors">{{ encaminhar_form.observacoes.errors }}</div>
-                                </div>
-                                <button type="submit" class="btn btn-primary">📨 Encaminhar</button>
-                            </form>
-                            {% if e_administrador %}
-
-                            <hr style="margin: 2rem 0;">
-
-                            <form method="post" style="margin-top: 1rem;">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="despacho">
-                                <h5>Adicionar Despacho</h5>
-                                <div class="form-group">
-                                    <label for="{{ despacho_form.despacho.id_for_label }}" class="form-label">Despacho:</label>
-                                    {{ despacho_form.despacho }}
-                                    <div class="form-errors">{{ despacho_form.despacho.errors }}</div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="{{ despacho_form.novo_status.id_for_label }}" class="form-label">Mudar Status para (Opcional):</label>
-                                    {{ despacho_form.novo_status }}
-                                    <div class="form-errors">{{ despacho_form.novo_status.errors }}</div>
-                                </div>
-                                <button type="submit" class="btn btn-primary">📋 Adicionar Despacho</button>
-                            </form>
-
-                            <!-- AÇÕES FINAIS: APENAS PARA ADMINISTRADORES -->
-                            <hr style="margin: 2rem 0;">
-                            <h5>Ações Finais (Administrador)</h5>
-                            <p style="font-size: 0.85rem; color: var(--text-grey); margin-bottom: 1rem;">
-                                ⚠️ Estas ações são irreversíveis e apenas administradores podem executá-las.
-                            </p>
-                            <div class="final-actions">
-                                <form method="post">
-                                    <button type="submit" class="btn btn-success">✅ Aprovar</button>
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="aprovado">
-                                </form>
-                                <form method="post">
-                                    <button type="submit" class="btn btn-danger">❌ Reprovar</button>
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="reprovado">
-                                </form>
-                                <a href="{% url 'registrar_armazenamento' documento.id %}" class="btn btn-secondary">📦 Registrar Armazenamento</a>
-                                <form method="post">
-                                    <button type="submit" class="btn btn-archive">🗄️ Arquivar</button>
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="arquivado">
-                                </form>
-                            </div>
-                            {% endif %}
-                        </div>
-                    {% endif %}
+                    <div class="flex items-center gap-4">
+                        <span class="flex items-center gap-1.5 text-slate-500 text-sm font-medium">
+                            <i data-lucide="folder" class="w-4 h-4 text-slate-400"></i>
+                            {{ documento.tipo_documento.nome }}
+                        </span>
+                        <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                        <span class="flex items-center gap-1.5 text-slate-500 text-sm font-medium">
+                            <i data-lucide="calendar" class="w-4 h-4 text-slate-400"></i>
+                            {{ documento.data_criacao|date:"d/m/Y - H:i" }}
+                        </span>
+                    </div>
                 </div>
-                <div class="sidebar-column">
-                    {% if movimentacoes_pendentes %}
-                        <div style="background-color: #fffbe6; padding: 1rem; border-radius: 3px; border: 1px solid #fef08a; margin-bottom: 2rem;">
-                            <h5 style="margin-top:0;">❗️ Ação Pendente</h5>
-                            <form method="post">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="confirmar_recebimento">
-                                <input type="hidden" name="movimentacao_id" value="{{ movimentacoes_pendentes.0.id }}">
-                                <button type="submit" class="btn btn-success" style="width: 100%;">✅ Confirmar Recebimento</button>
-                            </form>
-                        </div>
-                    {% endif %}
-                    <h4>Histórico</h4>
-                    <hr style="margin: 1rem 0;">
-                    <ul class="timeline">
-                        {% for mov in movimentacoes %}
-                        <li class="timeline-item">
-                            <div class="time">{{ mov.data_movimentacao|date:"d/m/Y H:i" }}</div>
-                            <div class="actor">{{ mov.usuario.username }}</div>
-                            <div class="description">
-                                <strong>{{ mov.get_tipo_movimentacao_display }}</strong>
-                                {% if mov.seccao_destino %}
-                                    para secção <strong>{{ mov.seccao_destino.nome }}</strong>
-                                {% elif mov.departamento_destino %}
-                                    para <strong>{{ mov.departamento_destino.nome }}</strong>
-                                {% endif %}.
-                            </div>
+            </div>
 
-                            {% if mov.despacho %}
-                            <div class="despacho-text">
-                                {{ mov.despacho|linebreaksbr }}
-                            </div>
-                            {% endif %}
-                        </li>
-                        {% empty %}
-                        <li>Nenhuma movimentação.</li>
-                        {% endfor %}
-                    </ul>
-                </div>
+            <div class="flex items-center gap-2">
+                {% if documento.status == 'aprovado' %}
+                    <span class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-xl font-black uppercase text-xs">
+                        <i data-lucide="check-circle-2" class="w-4 h-4"></i> Aprovado
+                    </span>
+                {% elif documento.status == 'reprovado' %}
+                    <span class="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-xl font-black uppercase text-xs">
+                        <i data-lucide="x-circle" class="w-4 h-4"></i> Reprovado
+                    {% elif documento.status == 'arquivado' %}
+                    <span class="inline-flex items-center gap-2 px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-black uppercase text-xs">
+                        <i data-lucide="archive" class="w-4 h-4"></i> Arquivado
+                    </span>
+                {% else %}
+                    <span class="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-xl font-black uppercase text-xs animate-pulse">
+                        <i data-lucide="clock" class="w-4 h-4"></i> Em Tramitação
+                    </span>
+                {% endif %}
             </div>
         </div>
-    </div>
-    <!-- Select2 CSS e JS para autocomplete/filtro nos selects -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Coluna Principal (8/12) -->
+            <div class="lg:col-span-8 space-y-8">
+                
+                <!-- Card de Informações Técnicas -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="info" class="w-4 h-4 text-sga-blue"></i>
+                            <h3 class="text-xs font-black uppercase tracking-widest text-slate-500">Metadados do Documento</h3>
+                        </div>
+                        {% if documento.arquivo %}
+                            <a href="{{ documento.arquivo.url }}" target="_blank" class="inline-flex items-center gap-2 px-3 py-1.5 bg-sga-blue/10 text-sga-blue hover:bg-sga-blue hover:text-white rounded-lg font-bold text-[11px] transition-all">
+                                <i data-lucide="file-down" class="w-3.5 h-3.5"></i> Baixar Original
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Origem / Entidade</p>
+                            <p class="text-sm font-bold text-slate-700 leading-snug">{{ documento.get_origem_display }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Prioridade</p>
+                             {% if documento.prioridade == 'Urgente' %}
+                                <span class="bg-red-100 text-red-600 px-2.5 py-1 rounded-md text-[10px] font-black uppercase">Crítica / Urgente</span>
+                            {% else %}
+                                <span class="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md text-[10px] font-black uppercase">{{ documento.get_prioridade_display }}</span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Localização Atual</p>
+                            <p class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-sga-red"></i>
+                                {{ documento.departamento_atual.nome }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Nível de Sigilo</p>
+                            <span class="status-badge text-sm font-bold text-slate-600 italic">{{ documento.get_status_display }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pareceres e Observações -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-50 bg-slate-50/50 flex items-center gap-2">
+                        <i data-lucide="message-square" class="w-4 h-4 text-sga-red"></i>
+                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-500">Pareceres e Observações Técnicas</h3>
+                    </div>
+                    <div class="divide-y divide-slate-50">
+                        {% for obs in observacoes %}
+                            {% if obs.observacoes %}
+                                <div class="p-6 flex gap-4">
+                                    <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center flex-shrink-0">
+                                        <i data-lucide="quote" class="w-5 h-5 text-slate-300"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <span class="text-sm font-bold text-slate-800">{{ obs.usuario.get_full_name|default:obs.usuario.username }}</span>
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                                {% if obs.usuario.departamento %}
+                                                    {{ obs.usuario.departamento.nome }}
+                                                {% elif obs.usuario.seccao %}
+                                                    {{ obs.usuario.seccao.nome }}
+                                                {% else %}
+                                                    Acesso Externo / Sistema
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <p class="text-sm text-slate-600 leading-relaxed italic">
+                                            "{{ obs.observacoes }}"
+                                        </p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% empty %}
+                            <div class="p-12 text-center">
+                                <i data-lucide="message-circle-off" class="w-10 h-10 text-slate-100 mx-auto mb-3"></i>
+                                <p class="text-xs text-slate-400 font-medium">Nenhum parecer registrado até o momento.</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Formulários de Ação (Apenas se tiver permissão) -->
+                {% if pode_encaminhar %}
+                <div class="space-y-6">
+                    <!-- Encaminhamento Card -->
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+                         <div class="px-6 py-5 border-b border-slate-50 bg-slate-50/10 flex items-center gap-2">
+                            <i data-lucide="send" class="w-5 h-5 text-sga-red"></i>
+                            <h3 class="text-sm font-black uppercase tracking-widest text-slate-700">Tramitação de Documento</h3>
+                        </div>
+                        <form method="post" class="p-6 space-y-6">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="encaminhar">
+                            {{ encaminhar_form.tipo_movimentacao.as_hidden }}
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-1.5 sga-form-group">
+                                    <label class="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                                        {{ encaminhar_form.departamento_destino.label }}
+                                    </label>
+                                    {{ encaminhar_form.departamento_destino }}
+                                    <p class="text-[10px] text-slate-400 font-medium mt-1 italic">Direccionado ao Gabinete Geral</p>
+                                </div>
+                                <div class="space-y-1.5 sga-form-group">
+                                    <label class="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                                        {{ encaminhar_form.seccao_destino.label }}
+                                        <span class="text-emerald-500 font-black ml-1">★</span>
+                                    </label>
+                                    {{ encaminhar_form.seccao_destino }}
+                                    <p class="text-[10px] text-slate-400 font-medium mt-1 italic">Direccionado a secção especializada</p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1">Seu Parecer Técnico / Orientação</label>
+                                {{ encaminhar_form.observacoes }}
+                                <div class="form-errors text-xs text-red-500 mt-1 font-bold">{{ encaminhar_form.observacoes.errors }}</div>
+                            </div>
+
+                            <button type="submit" class="w-full inline-flex items-center justify-center gap-3 px-6 py-3 bg-sga-red hover:bg-red-700 text-white rounded-xl font-bold text-sm shadow-xl shadow-red-100 transition-all hover:-translate-y-0.5 active:translate-y-0">
+                                <i data-lucide="send" class="w-4 h-4"></i>
+                                Realizar Tramitação Oficial
+                            </button>
+                        </form>
+                    </div>
+
+                    {% if e_administrador %}
+                    <!-- Despacho e Decisão Card -->
+                    <div class="bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-slate-800">
+                        <div class="px-6 py-5 border-b border-slate-800 bg-slate-800/50 flex items-center gap-2">
+                            <i data-lucide="pen-tool" class="w-5 h-5 text-amber-500"></i>
+                            <h3 class="text-sm font-black uppercase tracking-widest text-slate-400">Gabinete de Decisão (Despacho)</h3>
+                        </div>
+                        <div class="p-6 space-y-8">
+                            <form method="post" class="space-y-4">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="despacho">
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Inserir Despacho Oficial</label>
+                                    {{ despacho_form.despacho }}
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                                    <div class="space-y-2">
+                                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Nova Classificação (Opcional)</label>
+                                        {{ despacho_form.novo_status }}
+                                    </div>
+                                    <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-6 py-2.5 rounded-xl font-black text-xs uppercase transition-all flex items-center justify-center gap-2">
+                                        <i data-lucide="save" class="w-4 h-4"></i> Adicionar Despacho
+                                    </button>
+                                </div>
+                            </form>
+
+                            <div class="pt-6 border-t border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Ações de Resolução Final</h4>
+                                <div class="flex flex-wrap gap-3">
+                                    <form method="post"> {% csrf_token %} <input type="hidden" name="action" value="aprovado">
+                                        <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase shadow-lg shadow-emerald-500/20 transition-all">
+                                            <i data-lucide="check" class="w-4 h-4"></i> Aprovar
+                                        </button>
+                                    </form>
+                                    <form method="post"> {% csrf_token %} <input type="hidden" name="action" value="reprovado">
+                                        <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-xs uppercase shadow-lg shadow-red-500/20 transition-all">
+                                            <i data-lucide="x" class="w-4 h-4"></i> Reprovar
+                                        </button>
+                                    </form>
+                                    <a href="{% url 'registrar_armazenamento' documento.id %}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-xs uppercase transition-all">
+                                        <i data-lucide="archive" class="w-4 h-4"></i> Armazenar
+                                    </a>
+                                    <form method="post"> {% csrf_token %} <input type="hidden" name="action" value="arquivado">
+                                        <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs uppercase transition-all underline decoration-slate-600">
+                                            Arquivar
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Coluna Sidebar (4/12) -->
+            <div class="lg:col-span-4 space-y-6">
+                
+                <!-- Card de Ação Pendente -->
+                {% if movimentacoes_pendentes %}
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 shadow-sm ring-4 ring-amber-400/10">
+                    <div class="flex items-start gap-4 mb-4">
+                        <div class="p-2 bg-white rounded-lg shadow-sm">
+                            <i data-lucide="alert-triangle" class="w-6 h-6 text-amber-500 animate-bounce"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-black text-amber-900 uppercase">Acção Necessária</h4>
+                            <p class="text-xs text-amber-700 font-bold mt-0.5 italic">Confirmar recebimento do exemplar original</p>
+                        </div>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="confirmar_recebimento">
+                        <input type="hidden" name="movimentacao_id" value="{{ movimentacoes_pendentes.0.id }}">
+                        <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-xl font-black text-sm uppercase shadow-lg shadow-amber-200 transition-all transform active:scale-95">
+                            ✅ Aceitar Documento
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+
+                <!-- Histórico de Tramitação (Timeline) -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                    <div class="flex items-center gap-2 mb-8 pr-2">
+                        <i data-lucide="git-commit" class="w-4 h-4 text-slate-400"></i>
+                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-500">Fluxo de Tramitação</h3>
+                    </div>
+                    
+                    <div class="relative pl-6 space-y-10 group/timeline">
+                        <!-- Linha Central -->
+                        <div class="absolute left-[7px] top-1 bottom-1 w-0.5 bg-slate-100 group-hover/timeline:bg-slate-200 transition-colors"></div>
+
+                        {% for mov in movimentacoes %}
+                        <div class="relative">
+                            <!-- Marcador -->
+                            <div class="absolute -left-[23px] top-1.5 w-4 h-4 rounded-full bg-white border-4 border-sga-red shadow-sm z-10 transition-transform group-hover:scale-125"></div>
+                            
+                            <div class="flex flex-col">
+                                <time class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                    {{ mov.data_movimentacao|date:"d M Y • H:i" }}
+                                </time>
+                                <p class="text-[13px] text-slate-800 leading-tight">
+                                    <span class="font-bold text-sga-red">{{ mov.get_tipo_movimentacao_display }}</span>
+                                    {% if mov.seccao_destino %}
+                                        para <span class="font-bold text-slate-600">{{ mov.seccao_destino.nome }}</span>
+                                    {% elif mov.departamento_destino %}
+                                        para <span class="font-bold text-slate-600">{{ mov.departamento_destino.nome }}</span>
+                                    {% endif %}
+                                </p>
+                                <div class="mt-2 flex items-center gap-2">
+                                    <div class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[8px] font-black text-slate-500 uppercase">
+                                        {{ mov.usuario.username|slice:":1" }}
+                                    </div>
+                                    <span class="text-[11px] text-slate-400 font-bold italic">{{ mov.usuario.username }}</span>
+                                </div>
+
+                                {% if mov.despacho %}
+                                <div class="mt-4 p-3 bg-amber-50/50 border-l-2 border-amber-300 rounded-r-lg text-[11px] text-amber-900 font-medium italic leading-relaxed">
+                                    <i data-lucide="pen-tool" class="w-3 h-3 inline-block mr-1 opacity-50"></i>
+                                    {{ mov.despacho }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-10">
+                            <p class="text-xs text-slate-400 font-medium italic italic">Aguardando registro inicial...</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts Footer -->
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     
-    <style>
-        /* Estilos customizados para Select2 */
-        .select2-container--default .select2-selection--single {
-            height: 42px;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 3px;
-        }
-        .select2-container--default .select2-selection--single .select2-selection__rendered {
-            line-height: 24px;
-            color: #333;
-        }
-        .select2-container--default .select2-selection--single .select2-selection__arrow {
-            height: 40px;
-        }
-        .select2-dropdown {
-            border: 1px solid var(--border);
-            border-radius: 3px;
-        }
-        .select2-container--default .select2-search--dropdown .select2-search__field {
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            padding: 0.5rem;
-        }
-        .select2-container--default .select2-results__option--highlighted[aria-selected] {
-            background-color: var(--accent-gold);
-        }
-        .select2-container {
-            width: 100% !important;
-        }
-    </style>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.action-form select').forEach(el => el.classList.add('form-select'));
-            document.querySelectorAll('.action-form textarea').forEach(el => el.classList.add('form-textarea'));
+            // Inicializar Lucide
+            if (window.lucide) { lucide.createIcons(); }
 
-            // Lógica de Independência e Exclusividade Mútua (Select2-Aware)
+            // Estilizar inputs via JS
+            document.querySelectorAll('input:not([type="hidden"]), select, textarea').forEach(el => {
+                const isDarkSubject = el.closest('.bg-slate-900');
+                if (!el.classList.contains('select2-hidden-accessible')) {
+                    if (isDarkSubject) {
+                        el.className = "block w-full px-4 py-2.5 bg-slate-800 border-transparent focus:bg-slate-700 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 rounded-xl text-sm font-medium transition-all outline-none text-white";
+                    } else {
+                        el.className = "block w-full px-4 py-2.5 bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-sga-red/20 focus:border-sga-red rounded-xl text-sm font-medium transition-all outline-none";
+                    }
+                }
+            });
+
+            // Lógica de Independência de Selects (Select2 integrada)
             const $deptSelect = $('select[name="departamento_destino"]');
             const $seccaoSelect = $('select[name="seccao_destino"]');
 
@@ -309,50 +360,220 @@
                 const seccaoVal = $seccaoSelect.val();
 
                 if (deptVal) {
-                    // Bloquear secção
                     $seccaoSelect.prop('disabled', true);
-                    $seccaoSelect.next('.select2-container').css('opacity', '0.5');
-                    $seccaoSelect.next('.select2-container').find('.select2-selection').css('background-color', '#f9fafb');
+                    $seccaoSelect.next('.select2-container').css('opacity', '0.4');
                 } else if (seccaoVal) {
-                    // Bloquear departamento
                     $deptSelect.prop('disabled', true);
-                    $deptSelect.next('.select2-container').css('opacity', '0.5');
-                    $deptSelect.next('.select2-container').find('.select2-selection').css('background-color', '#f9fafb');
+                    $deptSelect.next('.select2-container').css('opacity', '0.4');
                 } else {
-                    // Liberar ambos
-                    $deptSelect.prop('disabled', false);
-                    $seccaoSelect.prop('disabled', false);
-                    $deptSelect.next('.select2-container').css('opacity', '1');
-                    $seccaoSelect.next('.select2-container').css('opacity', '1');
-                    $deptSelect.next('.select2-container').find('.select2-selection').css('background-color', '#ffffff');
-                    $seccaoSelect.next('.select2-container').find('.select2-selection').css('background-color', '#ffffff');
+                    $deptSelect.prop('disabled', false).next('.select2-container').css('opacity', '1');
+                    $seccaoSelect.prop('disabled', false).next('.select2-container').css('opacity', '1');
                 }
             }
 
-            $deptSelect.on('change', handleExclusivity);
-            $seccaoSelect.on('change', handleExclusivity);
+            // Inicializar Select2
+            $(document).ready(function() {
+                $('select').select2({
+                    placeholder: 'Seleccione o destino...',
+                    width: '100%'
+                }).on('change', handleExclusivity);
 
-            // Antes de enviar, reabilitar para o Django receber os dados
-            document.querySelectorAll('form').forEach(function(form) {
-                form.addEventListener('submit', function(e) {
+                // CSS customizado para Select2 (Aurora Premium)
+                $("<style>").prop("type", "text/css").html(`
+                    /* Global Select2 Aurora Styles */
+                    .select2-container--default .select2-selection--single {
+                        background-color: #ffffff;
+                        border: 2px solid #f1f5f9;
+                        border-radius: 12px;
+                        height: 48px;
+                        padding: 8px 12px;
+                        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    }
+                    .select2-container--default.select2-container--focus .select2-selection--single {
+                        border-color: #c8102e;
+                        background-color: #ffffff;
+                        box-shadow: 0 0 0 4px rgba(200, 16, 46, 0.05);
+                    }
+                    .select2-container--default .select2-selection--single .select2-selection__rendered {
+                        color: #0f172a;
+                        font-weight: 600;
+                        font-size: 0.875rem;
+                        line-height: normal;
+                    }
+                    .select2-container--default .select2-selection--single .select2-selection__arrow {
+                        height: 46px;
+                        right: 12px;
+                    }
+                    
+                    /* Dark Context Select2 (Despacho) */
+                    .bg-slate-900 .select2-container--default .select2-selection--single {
+                        background-color: #1e293b;
+                        border-color: #334155;
+                    }
+                    .bg-slate-900 .select2-container--default .select2-selection--single .select2-selection__rendered {
+                        color: #f8fafc;
+                    }
+                    .bg-slate-900 .select2-container--default.select2-container--focus .select2-selection--single {
+                        border-color: #f59e0b;
+                        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+                    }
+
+                    /* Dropdown Results */
+                    .select2-dropdown {
+                        border: none;
+                        border-radius: 16px;
+                        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                        margin-top: 8px;
+                        overflow: hidden;
+                    }
+                    .select2-results__option--highlighted[aria-selected] {
+                        background-color: #fef2f2 !important;
+                        color: #c8102e !important;
+                    }
+                    .select2-results__option {
+                        padding: 10px 16px;
+                        font-size: 0.875rem;
+                        font-weight: 500;
+                        color: #475569;
+                    }
+                `).appendTo("head");
+
+                handleExclusivity();
+            });
+
+            // Re-abilitar selects no submit
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', () => {
                     $deptSelect.prop('disabled', false);
                     $seccaoSelect.prop('disabled', false);
                 });
             });
-
-            // Ativar Select2
-            $('select').select2({
-                placeholder: 'Pesquisar...',
-                allowClear: true,
-                language: {
-                    noResults: function() { return "Nenhum resultado encontrado"; },
-                    searching: function() { return "Pesquisando..."; }
-                }
-            });
-
-            // Trigger inicial após Select2 pronto
-            setTimeout(handleExclusivity, 100);
         });
     </script>
+
+    <!-- AJAX Form Submission (No Page Refresh) -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Intercept all forms EXCEPT the encaminhamento form
+        document.querySelectorAll('form[method="post"]').forEach(function(form) {
+            const actionInput = form.querySelector('input[name="action"]');
+            if (!actionInput) return;
+            
+            const action = actionInput.value;
+            // Skip encaminhamento — it redirects to another page
+            if (action === 'encaminhar') return;
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalHTML = submitBtn ? submitBtn.innerHTML : '';
+                const formData = new FormData(form);
+
+                // Show loading state
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<svg class="animate-spin w-4 h-4 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
+                }
+
+                fetch(window.location.href, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    },
+                    body: formData
+                })
+                .then(function(response) {
+                    if (response.redirected) {
+                        // Fallback: if server didn't handle AJAX, follow redirect
+                        window.location.href = response.url;
+                        return null;
+                    }
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (!data) return;
+                    
+                    const isSuccess = data.status === 'ok';
+                    
+                    // Show toast notification
+                    if (typeof Toastify === 'function') {
+                        Toastify({
+                            text: isSuccess ? ('✅ ' + data.message) : ('❌ ' + (data.message || 'Erro inesperado')),
+                            duration: 4000,
+                            gravity: 'top',
+                            position: 'right',
+                            stopOnFocus: true,
+                            style: {
+                                background: isSuccess 
+                                    ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' 
+                                    : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                                borderRadius: '16px',
+                                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.15)',
+                                fontFamily: 'Inter, sans-serif',
+                                fontWeight: '700',
+                                padding: '14px 20px',
+                                fontSize: '13px'
+                            }
+                        }).showToast();
+                    }
+
+                    if (isSuccess) {
+                        // Update UI in-place based on action type
+                        if (action === 'confirmar_recebimento') {
+                            // Remove the pending confirmation banner
+                            const banner = form.closest('.bg-amber-50'); // Changed from .bg-gradient-to-r
+                            if (banner) {
+                                banner.style.transition = 'all 0.4s ease';
+                                banner.style.opacity = '0';
+                                banner.style.transform = 'translateY(-10px)';
+                                setTimeout(function() { banner.remove(); }, 400);
+                            }
+                        } else if (['aprovado', 'reprovado', 'arquivado'].includes(action)) {
+                            // Update status badge and disable action buttons
+                            const statusBadge = document.querySelector('.status-badge');
+                            if (statusBadge) {
+                                const labels = { aprovado: 'Aprovado', reprovado: 'Reprovado', arquivado: 'Arquivado' };
+                                const colors = { aprovado: '#059669', reprovado: '#dc2626', arquivado: '#64748b' };
+                                statusBadge.textContent = labels[action] || action;
+                                statusBadge.style.background = colors[action] || '#64748b';
+                                statusBadge.style.color = '#fff';
+                            }
+                            // Disable all action forms in the decision panel
+                            const decisionPanel = form.closest('.bg-slate-900');
+                            if (decisionPanel) {
+                                decisionPanel.style.transition = 'all 0.4s ease';
+                                decisionPanel.style.opacity = '0.5';
+                                decisionPanel.style.pointerEvents = 'none';
+                            }
+                        } else if (action === 'despacho') {
+                            // Clear the despacho textarea
+                            const textarea = form.querySelector('textarea');
+                            if (textarea) textarea.value = '';
+                        }
+                    }
+
+                    // Restore button
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalHTML;
+                    }
+                })
+                .catch(function(error) {
+                    console.error('[SGA] AJAX Error:', error);
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalHTML;
+                    }
+                    // Fallback to normal submit
+                    form.removeEventListener('submit', arguments.callee);
+                    form.submit();
+                });
+            });
+        });
+    });
+    </script>
+
 </body>
 </html>

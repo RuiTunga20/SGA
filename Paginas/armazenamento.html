@@ -1,440 +1,204 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGA - Registar Armazenamento</title>
-<style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        /* -- PALETA DE CORES -- */
-        :root {
-            --primary-orange: red;
-            --text-grey: #5a5a5a;
-            --text-grey-dark: #333333;
-            --primary-red: #c8102e;
-            --accent-gold: #daa520;
-            --bg-primary: #f4f4f4;
-            --bg-secondary: #ffffff;
-            --border: #cccccc;
-            --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
-            --success: #28a745;
-            --info: #17a2b8;
-        }
-
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: var(--bg-primary);
-            color: #333;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        /* --- ESTILOS DO FORMULÁRIO --- */
-        .form-container {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            padding: 2rem;
-            box-shadow: var(--shadow);
-            margin-top: 2rem;
-        }
-
-        .form-container h3 {
-            margin-bottom: 1.5rem;
-            color: var(--primary-red);
-            font-size: 1.25rem;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 1rem;
-        }
-
-        .document-info {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 4px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .document-info h4 {
-            color: var(--text-grey-dark);
-            margin-bottom: 0.5rem;
-            font-size: 1rem;
-        }
-
-        .document-info p {
-            margin: 0.25rem 0;
-            font-size: 0.9rem;
-            color: var(--text-grey);
-        }
-
-        .document-info .protocolo {
-            font-weight: bold;
-            color: var(--primary-red);
-        }
-
-        .current-location {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 4px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .current-location h5 {
-            color: #856404;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        .current-location p {
-            margin: 0;
-            color: #856404;
-            font-weight: bold;
-        }
-
-        .document-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .section-title {
-            font-size: 0.95rem;
-            color: var(--text-grey-dark);
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--accent-gold);
-        }
-
-        .form-section {
-            background: #fafafa;
-            padding: 1rem;
-            border-radius: 4px;
-            border: 1px solid #eee;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-        }
-
-        .form-row.full-width {
-            grid-template-columns: 1fr;
-        }
-
-        .form-row.three-cols {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .form-label {
-            font-weight: bold;
-            color: var(--text-grey-dark);
-            font-size: 0.9rem;
-        }
-
-        .form-input, .form-textarea, .form-select {
-            padding: 0.75rem 1rem;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            color: var(--text-grey-dark);
-            font-size: 1rem;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .form-input:focus, .form-textarea:focus, .form-select:focus {
-            outline: none;
-            border-color: var(--accent-gold);
-            box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
-        }
-
-        .form-textarea {
-            resize: vertical;
-            min-height: 100px;
-            font-family: inherit;
-        }
-
-        .form-help {
-            font-size: 0.8rem;
-            color: var(--text-grey);
-        }
-
-        .or-divider {
-            text-align: center;
-            margin: 1rem 0;
-            color: var(--text-grey);
-            font-size: 0.85rem;
-            position: relative;
-        }
-
-        .or-divider::before,
-        .or-divider::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            width: 40%;
-            height: 1px;
-            background: var(--border);
-        }
-
-        .or-divider::before { left: 0; }
-        .or-divider::after { right: 0; }
-
-        .form-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-            margin-top: 1rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid #eee;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 3px;
-            border: 1px solid transparent;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            text-decoration: none;
-            font-size: 0.9rem;
-        }
-
-        .btn.btn-primary {
-            background: var(--primary-red);
-            color: white;
-            border-color: var(--primary-red);
-        }
-
-        .btn.btn-primary:hover {
-            background: #a00d24;
-            border-color: #a00d24;
-        }
-
-        .btn.btn-secondary {
-            background: #e9e9e9;
-            color: var(--text-grey-dark);
-            border: 1px solid var(--border);
-        }
-
-        .btn.btn-secondary:hover {
-            background: #dcdcdc;
-        }
-
-        /* Mensagens de alerta */
-        .alert {
-            padding: 1rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-        }
-
-        .alert-warning {
-            background: #fff3cd;
-            border: 1px solid #ffeeba;
-            color: #856404;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-        }
-
-        /* --- RESPONSIVIDADE --- */
-        @media (max-width: 992px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            .form-row.three-cols {
-                grid-template-columns: 1fr;
-            }
-        }
-</style>
+    <title>Registar Armazenamento - SGA Aurora</title>
 </head>
-<body>
+<body class="h-full">
     {% include "menu.html" %}
 
-    <div class="container">
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        
+        <!-- Header de Navegação -->
+        <div class="mb-10 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="{% url 'detalhe_documento' documento_id=documento.id %}" class="p-2 text-slate-400 hover:text-sga-red hover:bg-red-50 rounded-xl transition-all">
+                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                </a>
+                <div>
+                    <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight font-display">Arquivo Físico</h2>
+                    <p class="text-slate-500 font-medium text-sm">Registro de custódia e localização</p>
+                </div>
+            </div>
+            <div class="hidden md:flex flex-col items-end">
+                <span class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Protocolo Vinculado</span>
+                <span class="px-3 py-1 bg-slate-100 border border-slate-200 rounded-lg text-sm font-mono font-bold text-slate-600 shadow-sm">
+                    {{ documento.numero_protocolo }}
+                </span>
+            </div>
+        </div>
+
         {% if messages %}
+            <div class="mb-8 space-y-4">
             {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                <div class="flex items-center gap-3 p-4 {% if message.tags == 'success' %}bg-emerald-50 text-emerald-700 border-emerald-100{% else %}bg-amber-50 text-amber-700 border-amber-100{% endif %} rounded-2xl border font-bold text-sm shadow-sm ring-1 ring-inset">
+                    <i data-lucide="{% if message.tags == 'success' %}check-circle{% else %}alert-triangle{% endif %}" class="w-5 h-5"></i>
+                    {{ message }}
+                </div>
             {% endfor %}
+            </div>
         {% endif %}
 
-        <div class="form-container">
-            <h3>📁 Registar Armazenamento de Documento</h3>
+        <div class="grid grid-cols-1 gap-8">
+            
+            <!-- Resumo do Documento -->
+            <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-8 flex flex-col md:flex-row gap-8 items-start">
+                    <div class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center flex-shrink-0 ring-4 ring-slate-100/50 shadow-inner">
+                        <i data-lucide="file-text" class="w-8 h-8 text-slate-300"></i>
+                    </div>
+                    <div class="flex-1 space-y-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800 leading-tight">{{ documento.titulo }}</h3>
+                            <p class="text-sm text-slate-400 font-medium mt-1">{{ documento.tipo_documento }} • {{ documento.Utente }}</p>
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-4">
+                            <div class="px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                                {{ documento.get_status_display }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            <!-- Informações do Documento -->
-            <div class="document-info">
-                <h4>Documento</h4>
-                <p><span class="protocolo">{{ documento.numero_protocolo }}</span> - {{ documento.titulo }}</p>
-                <p><strong>Tipo:</strong> {{ documento.tipo_documento }}</p>
-                <p><strong>Remetente:</strong> {{ documento.Utente }}</p>
-                <p><strong>Status:</strong> {{ documento.get_status_display }}</p>
+                {% if armazenamento_existente %}
+                <div class="px-8 py-6 bg-amber-50/50 border-t border-amber-100 flex items-center gap-4">
+                    <div class="p-2 bg-amber-400 text-white rounded-xl shadow-sm">
+                        <i data-lucide="navigation" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-amber-600 uppercase tracking-widest">Localização Atual</p>
+                        <p class="text-sm font-bold text-amber-900">{{ armazenamento_existente.localizacao_completa }}</p>
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
-            {% if armazenamento_existente %}
-            <div class="current-location">
-                <h5>⚠️ Localização Atual</h5>
-                <p>{{ armazenamento_existente.localizacao_completa }}</p>
-                <small>Registrado por {{ armazenamento_existente.registrado_por.username }} em {{ armazenamento_existente.data_armazenamento|date:"d/m/Y H:i" }}</small>
-            </div>
-            {% endif %}
-
-            <form class="document-form" method="post">
+            <!-- Formulário de Localização -->
+            <form method="post" class="space-y-8">
                 {% csrf_token %}
 
-                <!-- Opção 1: Local Cadastrado -->
-                <div class="form-section">
-                    <div class="section-title">📍 Local Cadastrado no Sistema</div>
-                    <div class="form-row full-width">
-                        <div class="form-group">
-                            <label for="id_local_armazenamento" class="form-label">Selecionar Local</label>
-                            {{ form.local_armazenamento }}
-                            <div class="form-help">Escolha um local previamente cadastrado no sistema</div>
+                <div class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                    <div class="px-10 py-8 border-b border-slate-100">
+                        <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Dados do Arquivo Físico</h3>
+                    </div>
+                    
+                    <div class="p-10 space-y-10">
+                        
+                        <!-- Opção 1: Seleção Sistêmica -->
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3 mb-6">
+                                <span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-black text-slate-500">01</span>
+                                <h4 class="text-sm font-bold text-slate-700">Seleccionar Local Cadastrado</h4>
+                            </div>
+                            <div class="bg-slate-50 p-6 rounded-3xl border-2 border-dashed border-slate-200">
+                                {{ form.local_armazenamento }}
+                                <p class="text-[10px] text-slate-400 font-medium mt-3 ml-1 italic">Dica: Utilize este campo se o arquivo segue uma padronização prévia.</p>
+                            </div>
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="relative flex py-5 items-center">
+                            <div class="flex-grow border-t border-slate-100"></div>
+                            <span class="flex-shrink mx-4 text-[10px] font-black text-slate-300 uppercase tracking-widest">ou definir manualmente</span>
+                            <div class="flex-grow border-t border-slate-100"></div>
+                        </div>
+
+                        <!-- Opção 2: Detalhamento Manual -->
+                        <div class="space-y-6">
+                            <div class="flex items-center gap-3 mb-6">
+                                <span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-black text-slate-500">02</span>
+                                <h4 class="text-sm font-bold text-slate-700">Endereçamento Personalizado</h4>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="space-y-1.5 sga-field">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block ml-1">Estante / Bastidor</label>
+                                    {{ form.estante }}
+                                </div>
+                                <div class="space-y-1.5 sga-field">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block ml-1">Prateleira / Nível</label>
+                                    {{ form.prateleira }}
+                                </div>
+                                <div class="space-y-1.5 sga-field">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block ml-1">Dossiê / Pasta</label>
+                                    {{ form.dossie }}
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-1.5 sga-field">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block ml-1">Caixa de Arquivo</label>
+                                    {{ form.caixa }}
+                                </div>
+                                <div class="space-y-1.5 sga-field">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block ml-1">Posicionamento</label>
+                                    {{ form.posicao }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Observações -->
+                        <div class="space-y-2 pt-6 border-t border-slate-50">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Notas de Custódia</label>
+                            {{ form.observacoes }}
                         </div>
                     </div>
-                </div>
 
-                <div class="or-divider">OU</div>
-
-                <!-- Opção 2: Localização Manual -->
-                <div class="form-section">
-                    <div class="section-title">✏️ Localização Manual</div>
-                    <div class="form-help" style="margin-bottom: 1rem;">
-                        Preencha os campos abaixo se o local não está cadastrado no sistema
-                    </div>
-
-                    <div class="form-row three-cols">
-                        <div class="form-group">
-                            <label for="id_estante" class="form-label">Estante</label>
-                            {{ form.estante }}
-                        </div>
-                        <div class="form-group">
-                            <label for="id_prateleira" class="form-label">Prateleira</label>
-                            {{ form.prateleira }}
-                        </div>
-                        <div class="form-group">
-                            <label for="id_dossie" class="form-label">Dossiê</label>
-                            {{ form.dossie }}
+                    <div class="px-10 py-8 bg-slate-50 border-t border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-between">
+                        <p class="text-[10px] text-slate-400 font-medium max-w-xs leading-relaxed">
+                            Ao salvar, a localização física será actulizada no histórico oficial do expediente.
+                        </p>
+                        <div class="flex gap-4 w-full md:w-auto">
+                            <button type="submit" class="flex-1 md:flex-none px-10 py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-200 transition-all transform active:scale-[0.98]">
+                                Registar Localização
+                            </button>
                         </div>
                     </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="id_caixa" class="form-label">Caixa (opcional)</label>
-                            {{ form.caixa }}
-                        </div>
-                        <div class="form-group">
-                            <label for="id_posicao" class="form-label">Posição (opcional)</label>
-                            {{ form.posicao }}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Observações -->
-                <div class="form-row full-width">
-                    <div class="form-group">
-                        <label for="id_observacoes" class="form-label">Observações</label>
-                        {{ form.observacoes }}
-                        <div class="form-help">Informações adicionais sobre o armazenamento</div>
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    <a href="{% url 'detalhe_documento' documento_id=documento.id %}" class="btn btn-secondary">Cancelar</a>
-                    <button type="submit" class="btn btn-primary">💾 Registar Armazenamento</button>
                 </div>
             </form>
         </div>
-    </div>
+    </main>
 
-    <script>
-      // Adiciona as classes CSS aos campos gerados pelo Django
-      document.addEventListener('DOMContentLoaded', function() {
-          document.querySelectorAll('input:not([type="file"]), textarea, select').forEach(el => {
-              if (el.tagName === 'TEXTAREA') { el.classList.add('form-textarea'); }
-              else if (el.tagName === 'SELECT') { el.classList.add('form-select'); }
-              else { el.classList.add('form-input'); }
-          });
-      });
-    </script>
-
-    <!-- Select2 CSS e JS para autocomplete/filtro nos selects -->
+    <!-- Scripts -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     
-    <style>
-        /* Estilos customizados para Select2 */
-        .select2-container--default .select2-selection--single {
-            height: 42px;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 3px;
-        }
-        .select2-container--default .select2-selection--single .select2-selection__rendered {
-            line-height: 24px;
-            color: var(--text-grey-dark);
-        }
-        .select2-container--default .select2-selection--single .select2-selection__arrow {
-            height: 40px;
-        }
-        .select2-dropdown {
-            border: 1px solid var(--border);
-            border-radius: 3px;
-        }
-        .select2-container--default .select2-search--dropdown .select2-search__field {
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            padding: 0.5rem;
-        }
-        .select2-container--default .select2-results__option--highlighted[aria-selected] {
-            background-color: var(--accent-gold);
-        }
-        .select2-container {
-            width: 100% !important;
-        }
-    </style>
-    
     <script>
-        $(document).ready(function() {
-            // Ativa Select2 em todos os selects com placeholder de busca
-            $('select').select2({
-                placeholder: 'Pesquisar...',
-                allowClear: true,
-                language: {
-                    noResults: function() {
-                        return "Nenhum resultado encontrado";
-                    },
-                    searching: function() {
-                        return "Pesquisando...";
-                    }
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar Lucide
+            if (window.lucide) { lucide.createIcons(); }
+
+            // Estilizar inputs via JS
+            document.querySelectorAll('input:not([type="hidden"]), select, textarea').forEach(el => {
+                const parentField = el.closest('.sga-field');
+                if (!el.classList.contains('select2-hidden-accessible')) {
+                    el.className = "block w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:ring-4 focus:ring-slate-500/5 focus:border-slate-800 rounded-2xl text-sm font-semibold transition-all outline-none";
                 }
+            });
+
+            // Inicializar Select2
+            $(document).ready(function() {
+                $('select').select2({
+                    placeholder: 'Seleccionar local cadastrado...',
+                    width: '100%'
+                });
+
+                // Injetar Estilos Select2 Custom
+                const style = document.createElement('style');
+                style.innerHTML = `
+                    .select2-container--default .select2-selection--single {
+                        background-color: transparent; border: none; border-radius: 0; height: 30px; padding: 0;
+                    }
+                    .select2-container--default .select2-selection--single .select2-selection__rendered {
+                        color: #1e293b; font-weight: 700; font-size: 0.875rem; line-height: 30px;
+                    }
+                    .select2-dropdown { border: none; border-radius: 1.25rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); margin-top: 20px; overflow: hidden; }
+                    .select2-results__option--highlighted[aria-selected] { background-color: #f8fafc !important; color: #0f172a !important; }
+                `;
+                document.head.appendChild(style);
             });
         });
     </script>

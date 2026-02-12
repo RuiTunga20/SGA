@@ -1,190 +1,140 @@
 
-
-
-
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGA - Gestão de Arquivos</title>
-<style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        /* -- PALETA DE CORES: Inspirada no SEPE.GOV.AO -- */
-        :root {
-            --primary-orange: red;
-            --text-grey: #5a5a5a;
-            --text-grey-dark: #333333;
-            --primary-red: #c8102e; /* Mantido para o formulário */
-            --accent-gold: #daa520; /* Mantido para o formulário */
-            --bg-primary: #f4f4f4;
-            --bg-secondary: #ffffff;
-            --border: #cccccc;
-            --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
-        }
-
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: var(--bg-primary);
-            color: #333;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        /* --- CABEÇALHO --- */
-        .header {
-            background: var(--bg-secondary);
-            border-bottom: 4px solid var(--primary-orange);
-            padding: 1rem 2rem;
-        }
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        /* ... (restante do seu CSS original do cabeçalho) ... */
-
-        /* --- ESTILOS DO FORMULÁRIO/TABELA --- */
-        .form-container {
-            background: var(--bg-secondary); border: 1px solid var(--border);
-            border-radius: 3px; padding: 2rem; box-shadow: var(--shadow);
-            margin-top: 2rem;
-        }
-        .form-container h3 {
-            margin-bottom: 1.5rem; color: var(--primary-red); font-size: 1.25rem;
-            border-bottom: 1px solid #eee; padding-bottom: 1rem;
-        }
-        
-        /* --- NOVO CSS PARA A PESQUISA --- */
-        .search-container {
-            margin-bottom: 1.5rem;
-        }
-        #table-search-input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            font-size: 1rem;
-        }
-        #table-search-input:focus {
-            outline: none;
-            border-color: var(--accent-gold);
-            box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
-        }
-
-        .documents-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .documents-table th, .documents-table td {
-            padding: 0.75rem 1rem;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-        .btn.btn-primary {
-             background: var(--primary-red);
-             color: white;
-             border-color: var(--primary-red);
-             text-decoration: none;
-             padding: 0.5rem;
-             display: inline-block;
-             text-align: center;
-        }
-        /* ... (restante do seu CSS original do formulário) ... */
-</style>
+    <title>Arquivo Morto - SGA Aurora</title>
 </head>
-<body>
+<body class="h-full">
     {% include "menu.html" %}
 
-    <div class="container">
-        <div class="form-container">
-            <h3>{% if form.instance.pk %}Editar Documento{% else %}Documentos Recebidos{% endif %}</h3>
-
-            <div class="search-container">
-                <input type="search" id="table-search-input" placeholder="🔎 Pesquisar na tabela...">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        
+        <!-- Header da Página -->
+        <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="p-2 bg-slate-200 text-slate-600 rounded-xl shadow-inner">
+                        <i data-lucide="archive" class="w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight font-display">Arquivo Morto</h2>
+                </div>
+                <p class="text-slate-500 font-medium text-sm ml-12">
+                    Consulta de expedientes concluídos e processos encerrados oficialmente.
+                </p>
             </div>
-             {% if documentos %}
-    <table class="documents-table">
-        <thead>
-            <tr>
-                <th>Protocolo</th>
-                <th>Documento</th>
-                <th>Status Final</th>
-                <th>Data de Conclusão</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody id="documents-table-body">
-            {% for doc in documentos %}
-            {{doc}}
-            <tr>
-                <td>{{ doc.numero_protocolo }}</td>
-                <td>
-                    <div class="document-title">{{ doc.titulo|truncatechars:30 }}</div>
-                </td>
-                <td>
-                    <span class="status-badge status-{{ doc.status }}">{{ doc.get_status_display }}</span>
-                </td>
-                <td>{{ doc.data_conclusao|date:"d/m/Y H:i" }}</td>
-                <td>
-                    <a href="{% url 'detalhe_documento' doc.id %}" class="btn-action" title="Ver Detalhes">
-                        👁️ Ver Detalhes
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-
-    {% else %}
-    <div class="empty-state">
-        <div class="empty-state-icon">🗄️</div>
-        <h4>O Arquivo Morto está vazio</h4>
-        <p>Nenhum documento foi encontrado com os critérios de busca ou ainda não existem documentos finalizados.</p>
-    </div>
-    {% endif %}
-           
+            
+            <!-- Barra de Pesquisa Moderna -->
+            <div class="relative group w-full md:w-80">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none mb-0.5">
+                    <i data-lucide="search" class="h-4 w-4 text-slate-400 group-focus-within:text-sga-red transition-colors"></i>
+                </div>
+                <input 
+                    type="search" 
+                    id="table-search-input" 
+                    class="block w-full pl-11 pr-4 py-3 bg-white border-transparent focus:ring-2 focus:ring-sga-red/20 focus:border-sga-red rounded-2xl text-sm font-medium shadow-sm transition-all outline-none" 
+                    placeholder="Pesquisar protocolo ou assunto..."
+                >
+            </div>
         </div>
-    </div>
 
-   <script>
+        <!-- Conteúdo Principal -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+            {% if documentos %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/50 border-b border-slate-100">
+                            <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Protocolo</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Assunto / Expediente</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Estado Final</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Encerramento</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="documents-table-body" class="divide-y divide-slate-50">
+                        {% for doc in documentos %}
+                        <tr class="group hover:bg-slate-50/80 transition-all duration-200">
+                            <td class="px-6 py-5">
+                                <span class="text-xs font-bold font-mono text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
+                                    {{ doc.numero_protocolo }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-5">
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-slate-700 group-hover:text-sga-dark transition-colors">{{ doc.titulo|truncatechars:45 }}</span>
+                                    <span class="text-[11px] text-slate-400 font-medium mt-0.5">{{ doc.tipo_documento.nome }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-5 text-center">
+                                {% if doc.status == 'aprovado' %}
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black uppercase tracking-tighter shadow-sm">
+                                        <i data-lucide="check-circle-2" class="w-3 h-3"></i> Aprovado
+                                    </span>
+                                {% elif doc.status == 'reprovado' %}
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-100 text-red-700 rounded-lg text-[10px] font-black uppercase tracking-tighter shadow-sm">
+                                        <i data-lucide="x-circle" class="w-3 h-3"></i> Reprovado
+                                    {% else %}
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-tighter shadow-sm">
+                                        <i data-lucide="archive" class="w-3 h-3"></i> Arquivado
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-5">
+                                <div class="flex flex-col">
+                                    <span class="text-xs font-bold text-slate-600">{{ doc.data_conclusao|date:"d/m/Y" }}</span>
+                                    <span class="text-[10px] text-slate-400 font-medium">{{ doc.data_conclusao|date:"H:i" }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-5 text-right">
+                                <a href="{% url 'detalhe_documento' doc.id %}" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-sga-red hover:text-white text-slate-600 rounded-xl text-xs font-bold transition-all transform active:scale-95 group/btn shadow-sm">
+                                    <i data-lucide="eye" class="w-3.5 h-3.5 transition-transform group-hover/btn:scale-110"></i>
+                                    Visualizar Histórico
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="py-24 px-6 text-center">
+                <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-8 ring-slate-100/50">
+                    <i data-lucide="inbox" class="w-10 h-10 text-slate-200"></i>
+                </div>
+                <h4 class="text-lg font-black text-slate-800 mb-2 uppercase tracking-tight">O Arquivo Morto está vazio</h4>
+                <p class="text-sm text-slate-400 max-w-sm mx-auto font-medium">Nenhum documento foi finalizado ou ativado com os critérios de busca atuais.</p>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Seleciona o campo de pesquisa e as linhas da tabela
+            // Inicializar Lucide
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+
+            // Pesquisa Client-Side
             const searchInput = document.getElementById('table-search-input');
             const tableRows = document.querySelectorAll('#documents-table-body tr');
 
-            // Adiciona um "ouvinte" para o evento de digitação
-            searchInput.addEventListener('keyup', function(event) {
-                const searchTerm = event.target.value.toLowerCase();
-
-                // Para cada linha da tabela
-                tableRows.forEach(row => {
-                    // Pega todo o texto da linha e converte para minúsculas
-                    const rowText = row.textContent.toLowerCase();
-
-                    // Verifica se o texto da linha inclui o termo pesquisado
-                    if (rowText.includes(searchTerm)) {
-                        // Se incluir, mostra a linha
-                        row.style.display = ""; // "" reverte para o padrão (table-row)
-                    } else {
-                        // Se não incluir, esconde a linha
-                        row.style.display = "none";
-                    }
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const term = e.target.value.toLowerCase();
+                    
+                    tableRows.forEach(row => {
+                        const text = row.innerText.toLowerCase();
+                        if (text.includes(term)) {
+                            row.style.display = "";
+                        } else {
+                            row.style.display = "none";
+                        }
+                    });
                 });
-            });
+            }
         });
     </script>
 </body>

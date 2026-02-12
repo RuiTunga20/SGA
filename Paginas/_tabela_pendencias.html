@@ -1,52 +1,85 @@
-<table class="documents-table">
-    <thead>
-        <tr>
-            <th>Título do Documento</th>
-            <th>Enviado Por</th> <th>Data de Envio</th>
-            <th style="width: 150px; text-align: center;">Ações</th>
-        </tr>
-    </thead>
-    <tbody id="documents-table-body">
-        {% for mov in movimentacoes_pendentes %}
-        <tr>
-            <td>
-                {{ mov.documento.titulo }}
-                {% if mov.documento.urgente %}
-                    <span class="badge-urgente">⚠️ URGENTE</span>
-                {% endif %}
-                <br>
-                <small style="color: #888;">Ref: {{ mov.documento.numero_referencia }}</small>
-            </td>
+<div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+        <thead>
+            <tr class="bg-slate-50 border-b border-slate-100">
+                <th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Expediente</th>
+                <th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Remetente</th>
+                <th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Data de Envio</th>
+                <th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Ação</th>
+            </tr>
+        </thead>
+        <tbody id="documents-table-body" class="divide-y divide-slate-50">
+            {% for mov in movimentacoes_pendentes %}
+            <tr class="hover:bg-slate-50/50 transition-colors group">
+                <!-- Expediente -->
+                <td class="px-6 py-4">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-bold text-slate-800 group-hover:text-sga-red transition-colors flex items-center gap-2">
+                            {{ mov.documento.titulo|truncatechars:50 }}
+                            {% if mov.documento.urgente %}
+                                <span class="bg-red-100 text-red-600 px-2 py-0.5 rounded text-[9px] font-black uppercase animate-pulse">Urgente</span>
+                            {% endif %}
+                        </span>
+                        <span class="text-[11px] text-slate-400 font-medium mt-0.5">Ref: {{ mov.documento.numero_referencia }}</span>
+                    </div>
+                </td>
 
-            <td>
-                <strong>{{ mov.usuario.get_full_name|default:mov.usuario.username }}</strong>
-                <br>
+                <!-- Remetente -->
+                <td class="px-6 py-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs ring-1 ring-slate-200">
+                            {{ mov.usuario.username|slice:":1"|upper }}
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-xs font-bold text-slate-700 leading-none">{{ mov.usuario.get_full_name|default:mov.usuario.username }}</span>
+                            <span class="text-[10px] text-slate-400 font-medium mt-1">
+                                {% if mov.seccao_origem %}
+                                    Séc: {{ mov.seccao_origem.nome }}
+                                {% else %}
+                                    Dep: {{ mov.departamento_origem.nome }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </td>
 
-                <small style="color: #555;">
-                    {% if mov.seccao_origem %}
-                        (Secção: {{ mov.seccao_origem.nome }})
-                    {% else %}
-                        (Dep: {{ mov.departamento_origem.nome }})
-                    {% endif %}
-                </small>
-            </td>
+                <!-- Data -->
+                <td class="px-6 py-4">
+                    <div class="flex items-center gap-2 text-xs font-bold text-slate-500">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+                        {{ mov.data_movimentacao|date:"d/m/Y" }}
+                        <span class="text-[10px] text-slate-300 font-medium font-mono ml-1">{{ mov.data_movimentacao|date:"H:i" }}</span>
+                    </div>
+                </td>
 
-            <td>
-                {{ mov.data_movimentacao|date:"d/m/Y H:i" }}
-            </td>
+                <!-- Ação -->
+                <td class="px-6 py-4 text-right">
+                    <a href="{% url 'detalhe_documento' mov.documento.id %}" 
+                       class="inline-flex items-center gap-2 px-4 py-1.5 bg-white hover:bg-sga-red border border-slate-200 hover:border-sga-red text-slate-600 hover:text-white rounded-lg text-xs font-bold transition-all shadow-sm"
+                    >
+                        Analisar <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="px-6 py-16 text-center">
+                    <div class="flex flex-col items-center">
+                        <div class="p-4 bg-slate-50 rounded-full mb-4">
+                            <i data-lucide="check-circle-2" class="w-10 h-10 text-slate-300"></i>
+                        </div>
+                        <p class="text-slate-500 font-bold">Nenhuma pendência encontrada</p>
+                        <p class="text-slate-400 text-xs mt-1">Tudo em dia no seu departamento!</p>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
-            <td style="text-align: center;">
-                <a href="{% url 'detalhe_documento' mov.documento.id %}" class="btn-link">
-                    Ver Detalhes
-                </a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="4" style="text-align: center; padding: 2rem; color: #777;">
-                Nenhuma pendência de recebimento encontrada.
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<script>
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+</script>

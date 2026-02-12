@@ -1,69 +1,77 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGA - Pendências de Recebimento</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --primary-orange: red; --text-grey: #5a5a5a; --primary-red: #c8102e;
-            --accent-gold: #daa520; --bg-primary: #f4f4f4; --bg-secondary: #ffffff;
-            --border: #cccccc; --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
-            --success-green: #16a34a;
-        }
-        body { font-family: Arial, Helvetica, sans-serif; background: var(--bg-primary); color: #333; line-height: 1.6; }
-        .container { max-width: 960px; margin: 0 auto; padding: 2rem; }
-        .form-container { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 3px; padding: 2rem; box-shadow: var(--shadow); margin-top: 2rem; }
-        .form-container h3 { margin-bottom: 1.5rem; color: var(--primary-red); font-size: 1.25rem; border-bottom: 1px solid #eee; padding-bottom: 1rem; }
-        .search-container { margin-bottom: 1.5rem; }
-        #table-search-input { width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 3px; font-size: 1rem; }
-        #table-search-input:focus { outline: none; border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2); }
-        .documents-table { width: 100%; border-collapse: collapse; }
-        .documents-table th, .documents-table td { padding: 0.75rem 1rem; border: 1px solid #ddd; text-align: left; vertical-align: middle; }
-        .btn { text-decoration: none; padding: 0.5rem 1rem; display: inline-block; text-align: center; border-radius: 3px; color: white; border: none; cursor: pointer; font-weight: bold; }
-        .btn-success { background: var(--success-green); }
-        .btn-link { color: var(--primary-red); text-decoration: none; font-weight: bold; }
-        .btn-link:hover { text-decoration: underline; }
-
-        /* NOVO CSS PARA URGÊNCIA */
-        .badge-urgente {
-            background-color: var(--primary-red);
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            margin-left: 8px;
-            text-transform: uppercase;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
-        }
-    </style>
+    <title>Pendências de Recebimento - SGA Aurora</title>
 </head>
-<body>
+<body class="h-full">
     {% include "menu.html" %}
 
-    <div class="container">
-        <div class="form-container">
-            <h3>Documentos Pendentes de Recebimento</h3>
-
-            <div class="search-container">
-                <input type="search" id="table-search-input" placeholder="🔎 Pesquisar por título, origem...">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        
+        <!-- Header da Página -->
+        <div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+                <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight font-display">
+                    Pendências de Recebimento
+                </h2>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <p class="text-slate-500 font-medium text-sm italic">
+                        Aguardando confirmação de recebimento físico ou digital
+                    </p>
+                </div>
             </div>
-
-            <div class="table-container" id="pendencias-table-container">
-
-                {% include '_tabela_pendencias.html' %}
-
+            
+            <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100">
+                <i data-lucide="info" class="w-4 h-4 text-blue-500"></i>
+                <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Sincronização Ativa (WebSocket)
+                </span>
             </div>
         </div>
-    </div>
+
+        <!-- Filtros e Busca -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 flex items-center gap-4">
+            <div class="relative flex-1">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
+                </div>
+                <input 
+                    type="search" 
+                    id="table-search-input" 
+                    placeholder="Pesquisar por título, protocolo ou remetente..." 
+                    class="block w-full pl-10 pr-4 py-2.5 bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-amber-200 focus:border-amber-400 rounded-xl text-sm font-medium transition-all"
+                >
+            </div>
+            <button 
+                onclick="atualizarTabelaPendencias()" 
+                class="p-2.5 text-slate-400 hover:text-sga-blue hover:bg-blue-50 rounded-xl transition-all border border-transparent hover:border-blue-100"
+                title="Atualizar agora"
+            >
+                <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Tabela de Pendências -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" id="pendencias-table-container">
+            {% include '_tabela_pendencias.html' %}
+        </div>
+
+        <div class="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl flex items-start gap-4">
+            <div class="p-2 bg-white rounded-lg shadow-sm">
+                <i data-lucide="lightbulb" class="w-5 h-5 text-blue-500"></i>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-blue-900">Como confirmar?</h4>
+                <p class="text-xs text-blue-700 font-medium leading-relaxed mt-1">
+                    Ao confirmar o recebimento, o remetente será notificado e o documento passará a constar como "Em Posse" do seu departamento.
+                    Utilize o botão "Analisar" para carregar os detalhes e realizar a confirmação.
+                </p>
+            </div>
+        </div>
+    </main>
 
    <script>
         function aplicarFiltroDeBusca() {
@@ -71,69 +79,54 @@
             const tableRows = document.querySelectorAll('#documents-table-body tr');
 
             if (searchInput) {
-                const searchTerm = searchInput.value.toLowerCase();
+                const searchTerm = searchInput.value.toLowerCase().trim();
                 tableRows.forEach(row => {
+                    if (row.querySelector('td[colspan]')) return;
                     const rowText = row.textContent.toLowerCase();
-                    if (rowText.includes(searchTerm)) {
-                        row.style.display = "";
-                    } else {
-                        row.style.display = "none";
-                    }
+                    row.style.display = rowText.includes(searchTerm) ? "" : "none";
                 });
             }
         }
 
-        // Função para atualizar tabela - disponível globalmente
         function atualizarTabelaPendencias() {
             const pendenciasContainer = document.getElementById('pendencias-table-container');
-            if (!pendenciasContainer) {
-                console.warn('[Pendências] Container não encontrado');
-                return;
-            }
+            if (!pendenciasContainer) return;
+
+            // Feedback visual de carregamento
+            pendenciasContainer.style.opacity = '0.5';
             
-            console.log('[Pendências] A atualizar tabela...');
             fetch("{% url 'lista_pendencias_parcial' %}")
                 .then(response => response.text())
                 .then(html => {
                     pendenciasContainer.innerHTML = html;
+                    pendenciasContainer.style.opacity = '1';
                     aplicarFiltroDeBusca();
-                    console.log('[Pendências] ✅ Tabela atualizada com sucesso');
+                    if (window.lucide) lucide.createIcons();
                 })
-                .catch(error => console.error("[Pendências] ❌ Erro ao atualizar a tabela:", error));
+                .catch(error => {
+                    console.error("Erro ao atualizar pendências:", error);
+                    pendenciasContainer.style.opacity = '1';
+                });
         }
 
-        // ==========================================================
-        // WEBSOCKET: Escutar eventos do menu.html IMEDIATAMENTE
-        // Registado fora do DOMContentLoaded para estar pronto antes
-        // ==========================================================
-        window.addEventListener('pendenciasAtualizadas', function(event) {
-            console.log('[Pendências] 📨 Evento WebSocket recebido:', event.detail);
+        window.addEventListener('pendenciasAtualizadas', function() {
             atualizarTabelaPendencias();
         });
-        console.log('[Pendências] Listener WebSocket registado. A aguardar eventos...');
 
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.getElementById('table-search-input');
             if (searchInput) {
-                searchInput.addEventListener('keyup', aplicarFiltroDeBusca);
+                searchInput.addEventListener('input', aplicarFiltroDeBusca);
             }
 
-            // ==========================================================
-            // FALLBACK: Polling a cada 60s caso WebSocket não funcione
-            // ==========================================================
-            let wsAtivo = false;
-            
-            // Verificar se WebSocket está conectado após 5 segundos
+            // Polling de fallback (apenas se WebSocket não estiver disponível)
             setTimeout(function() {
-                if (window.notificationSocket && window.notificationSocket.readyState === WebSocket.OPEN) {
-                    wsAtivo = true;
-                    console.log('[Pendências] ✅ WebSocket activo - sem necessidade de polling');
-                } else {
-                    console.log('[Pendências] ⚠️ WebSocket não disponível - activando polling de fallback');
-                    // Polling de fallback a cada 60 segundos
+                if (!window.notificationSocket || window.notificationSocket.readyState !== WebSocket.OPEN) {
                     setInterval(atualizarTabelaPendencias, 60000);
                 }
             }, 5000);
+
+            if (window.lucide) lucide.createIcons();
         });
    </script>
 </body>

@@ -1,318 +1,280 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão de Usuários - {{ administracao.nome }}</title>
-<style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-        --primary-orange: red;
-        --text-grey: #5a5a5a;
-        --text-grey-dark: #333333;
-        --primary-red: #c8102e;
-        --accent-gold: #daa520;
-        --bg-primary: #f4f4f4;
-        --bg-secondary: #ffffff;
-        --border: #cccccc;
-        --shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
-    }
-    body {
-        font-family: Arial, Helvetica, sans-serif;
-        background: var(--bg-primary);
-        color: #333;
-        line-height: 1.6;
-    }
-    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-    .page-header {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border);
-        border-radius: 3px;
-        padding: 1.5rem 2rem;
-        margin-bottom: 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .page-header h1 { color: var(--primary-red); font-size: 1.5rem; }
-    .page-header span { color: var(--text-grey); font-size: 0.9rem; }
-    
-    .grid-container { display: grid; grid-template-columns: 1fr 1.5fr; gap: 2rem; }
-    
-    .form-container, .users-container {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border);
-        border-radius: 3px;
-        padding: 2rem;
-        box-shadow: var(--shadow);
-    }
-    .form-container h3, .users-container h3 {
-        margin-bottom: 1.5rem;
-        color: var(--primary-red);
-        font-size: 1.1rem;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 1rem;
-    }
-    .form-group { margin-bottom: 1rem; }
-    .form-label { display: block; font-weight: bold; font-size: 0.85rem; margin-bottom: 0.3rem; }
-    .form-control, .form-select {
-        width: 100%;
-        padding: 0.6rem 0.8rem;
-        border: 1px solid var(--border);
-        border-radius: 3px;
-        font-size: 0.95rem;
-    }
-    .form-control:focus, .form-select:focus {
-        outline: none;
-        border-color: var(--accent-gold);
-        box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
-    }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .btn-submit {
-        background: var(--primary-red);
-        color: white;
-        border: none;
-        padding: 0.75rem 2rem;
-        border-radius: 3px;
-        font-weight: bold;
-        cursor: pointer;
-        width: 100%;
-        margin-top: 1rem;
-    }
-    .btn-submit:hover { opacity: 0.9; }
-    
-    /* Tabela de Usuários */
-    .users-table { width: 100%; border-collapse: collapse; }
-    .users-table th, .users-table td {
-        text-align: left;
-        padding: 0.75rem;
-        border-bottom: 1px solid #eee;
-        font-size: 0.9rem;
-    }
-    .users-table th { background: #f9f9f9; font-weight: bold; }
-    .users-table tr:hover { background: #fafafa; }
-    .badge {
-        display: inline-block;
-        padding: 0.2rem 0.6rem;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: bold;
-    }
-    .badge-admin { background: #dc3545; color: white; }
-    .badge-diretor { background: #fd7e14; color: white; }
-    .badge-tecnico { background: #17a2b8; color: white; }
-    .badge-default { background: #6c757d; color: white; }
-    
-    .error-list { color: #dc3545; font-size: 0.85rem; margin-top: 0.25rem; }
-    
-    @media (max-width: 992px) {
-        .grid-container { grid-template-columns: 1fr; }
-        .form-row { grid-template-columns: 1fr; }
-    }
-</style>
+    <title>Gestão de Utilizadores - SGA Aurora</title>
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 </head>
-<body>
+<body class="h-full">
     {% include "menu.html" %}
 
-    <div class="container">
-        <div class="page-header">
-            <h1>Gestão de Usuários</h1>
-            <span>{{ administracao.nome }} | {{ usuarios.count }} usuários</span>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        
+        <!-- Header da Página -->
+        <div class="mb-8 overflow-hidden">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-white rounded-2xl shadow-sm border border-slate-100">
+                        <i data-lucide="users" class="w-8 h-8 text-sga-red"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight font-display">Controle de Utilizadores</h2>
+                        <p class="text-slate-500 font-medium text-sm">
+                            Administração de acessos para <span class="text-sga-red font-bold">{{ administracao.nome }}</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="text-right hidden md:block">
+                    <span class="text-4xl font-black text-slate-200 leading-none">{{ usuarios.count }}</span>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Contas Ativas</p>
+                </div>
+            </div>
         </div>
 
-        <div class="grid-container">
-            <!-- Formulário de Criação -->
-            <div class="form-container">
-                <h3>➕ Adicionar Novo Usuário</h3>
-                <form method="post" id="formCriarUsuario">
-                    {% csrf_token %}
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Formulário de Criação (5/12) -->
+            <div class="lg:col-span-5">
+                <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden sticky top-28">
+                    <div class="px-8 py-6 border-b border-slate-50 bg-slate-50/50">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="user-plus" class="w-4 h-4 text-emerald-500"></i>
+                            <h3 class="text-xs font-black uppercase tracking-widest text-slate-500">Novo Registro de Acesso</h3>
+                        </div>
+                    </div>
                     
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Nome de Usuário *</label>
-                            {{ form.username }}
-                            {% if form.username.errors %}<div class="error-list">{{ form.username.errors.0 }}</div>{% endif %}
+                    <form method="post" id="formCriarUsuario" class="p-8 space-y-6">
+                        {% csrf_token %}
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Nome de Utilizador</label>
+                                {{ form.username }}
+                                {% if form.username.errors %}<p class="text-[10px] text-red-500 font-bold mt-1">{{ form.username.errors.0 }}</p>{% endif %}
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">E-mail Corporativo</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}<p class="text-[10px] text-red-500 font-bold mt-1">{{ form.email.errors.0 }}</p>{% endif %}
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Email *</label>
-                            {{ form.email }}
-                            {% if form.email.errors %}<div class="error-list">{{ form.email.errors.0 }}</div>{% endif %}
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Primeiro Nome</label>
+                                {{ form.first_name }}
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Sobrenome</label>
+                                {{ form.last_name }}
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Nome *</label>
-                            {{ form.first_name }}
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Nível de Hierarquia / Acesso</label>
+                            {{ form.nivel_acesso }}
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Sobrenome *</label>
-                            {{ form.last_name }}
+
+                        <div class="space-y-4 pt-4 border-t border-slate-50">
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Departamento</label>
+                                {{ form.departamento }}
+                            </div>
+                            <div class="space-y-1.5" id="seccao-container">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Secção Específica (Opcional)</label>
+                                {{ form.seccao }}
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="form-group">
-                        <label class="form-label">Telefone</label>
-                        {{ form.telefone }}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Departamento *</label>
-                        {{ form.departamento }}
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Secção (Opcional)</label>
-                        {{ form.seccao }}
-                        <small style="color: #666;">Será carregado após selecionar o departamento</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Nível de Acesso *</label>
-                        {{ form.nivel_acesso }}
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Senha *</label>
-                            {{ form.password1 }}
-                            {% if form.password1.errors %}<div class="error-list">{{ form.password1.errors.0 }}</div>{% endif %}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl">
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Definir Senha</label>
+                                {{ form.password1 }}
+                                {% if form.password1.errors %}<p class="text-[10px] text-red-500 font-bold mt-1">{{ form.password1.errors.0 }}</p>{% endif %}
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Confirmar Senha</label>
+                                {{ form.password2 }}
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Confirmar Senha *</label>
-                            {{ form.password2 }}
-                            {% if form.password2.errors %}<div class="error-list">{{ form.password2.errors.0 }}</div>{% endif %}
-                        </div>
-                    </div>
 
-                    <button type="submit" class="btn-submit">Criar Usuário</button>
-                </form>
+                        <button type="submit" class="w-full bg-slate-900 border border-slate-800 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200">
+                            Activar Conta de Utilizador
+                        </button>
+                    </form>
+                </div>
             </div>
 
-            <!-- Lista de Usuários -->
-            <div class="users-container">
-                <h3>👥 Usuários da Administração</h3>
-                <table class="users-table">
-                    <thead>
-                        <tr>
-                            <th>Usuário</th>
-                            <th>Nome</th>
-                            <th>Departamento</th>
-                            <th>Nível</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for u in usuarios %}
-                        <tr>
-                            <td>{{ u.username }}</td>
-                            <td>{{ u.first_name }} {{ u.last_name }}</td>
-                            <td>
-                                {{ u.departamento.nome|default:"-" }}
-                                {% if u.seccao %}<br><small>→ {{ u.seccao.nome }}</small>{% endif %}
-                            </td>
-                            <td>
-                                <span class="badge 
-                                    {% if 'admin' in u.nivel_acesso %}badge-admin
-                                    {% elif 'diretor' in u.nivel_acesso %}badge-diretor
-                                    {% elif 'tecnico' in u.nivel_acesso %}badge-tecnico
-                                    {% else %}badge-default{% endif %}">
-                                    {{ u.get_nivel_acesso_display|default:u.nivel_acesso }}
-                                </span>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="4" style="text-align: center; padding: 2rem;">Nenhum usuário encontrado</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <!-- Listagem de Usuários (7/12) -->
+            <div class="lg:col-span-7 bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-28 z-20">
+                    <h3 class="text-xs font-black uppercase tracking-widest text-slate-500">Utilizadores Activos</h3>
+                    <div class="flex items-center gap-2">
+                         <span class="text-[10px] font-bold text-slate-400">Total: {{ usuarios.count }}</span>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-slate-50/50">
+                                <th class="px-8 py-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Identificação</th>
+                                <th class="px-8 py-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Localização</th>
+                                <th class="px-8 py-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Permissões</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            {% for u in usuarios %}
+                            <tr class="group hover:bg-slate-50/80 transition-all duration-200">
+                                <td class="px-8 py-6">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-black text-sm uppercase ring-4 ring-white shadow-sm transition-all group-hover:bg-sga-red group-hover:text-white">
+                                            {{ u.username|slice:":2" }}
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-sm font-bold text-slate-800">{{ u.first_name }} {{ u.last_name }}</span>
+                                            <span class="text-[11px] font-medium text-slate-400">@{{ u.username }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-8 py-6">
+                                    <div class="flex flex-col">
+                                        {% if u.departamento %}
+                                            <span class="text-xs font-bold text-slate-600">{{ u.departamento.nome|default:"Acesso Global" }}</span>
+                                        {% else %}
+                                            <span class="text-xs font-bold text-slate-600">Acesso Global</span>
+                                        {% endif %}
+                                        {% if u.seccao %}
+                                            <span class="text-[10px] text-sga-red font-bold uppercase tracking-tighter mt-0.5">{{ u.seccao.nome }}</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="px-8 py-6 text-right">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest shadow-sm ring-1 ring-inset
+                                        {% if 'admin' in u.nivel_acesso %}bg-red-50 text-red-700 ring-red-100
+                                        {% elif 'diretor' in u.nivel_acesso %}bg-amber-50 text-amber-700 ring-amber-100
+                                        {% elif 'tecnico' in u.nivel_acesso %}bg-blue-50 text-blue-700 ring-blue-100
+                                        {% else %}bg-slate-50 text-slate-600 ring-slate-100{% endif %}">
+                                        {{ u.get_nivel_acesso_display|default:u.nivel_acesso }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="px-8 py-12 text-center">
+                                    <i data-lucide="shield-alert" class="w-10 h-10 text-slate-100 mx-auto mb-3"></i>
+                                    <p class="text-xs text-slate-400 font-medium">Nenhum utilizador registado nesta administração.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- Select2 CSS e JS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     
-    <style>
-        /* Estilos customizados para Select2 */
-        .select2-container--default .select2-selection--single {
-            height: 42px;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 3px;
-        }
-        .select2-container--default .select2-selection--single .select2-selection__rendered {
-            line-height: 24px;
-            color: var(--text-grey-dark);
-        }
-        .select2-container--default .select2-selection--single .select2-selection__arrow {
-            height: 40px;
-        }
-        .select2-dropdown {
-            border: 1px solid var(--border);
-            border-radius: 3px;
-        }
-        .select2-container--default .select2-search--dropdown .select2-search__field {
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            padding: 0.5rem;
-        }
-        .select2-container--default .select2-results__option--highlighted[aria-selected] {
-            background-color: var(--accent-gold);
-        }
-        .select2-container {
-            width: 100% !important;
-        }
-    </style>
-
     <script>
-        $(document).ready(function() {
-            // Inicializar Select2
-            $('#id_departamento').select2({
-                placeholder: 'Selecione um departamento',
-                allowClear: true,
-                language: {
-                    noResults: function() { return "Nenhum resultado encontrado"; },
-                    searching: function() { return "Pesquisando..."; }
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar Lucide
+            if (window.lucide) { lucide.createIcons(); }
+
+            // Estilizar inputs via JS
+            document.querySelectorAll('input:not([type="hidden"]), select').forEach(el => {
+                if (!el.classList.contains('select2-hidden-accessible')) {
+                    el.className = "block w-full px-4 py-3 bg-slate-50 border-2 border-transparent focus:bg-white focus:ring-4 focus:ring-sga-red/5 focus:border-sga-red/30 rounded-2xl text-sm font-semibold transition-all outline-none";
                 }
             });
 
-            $('#id_seccao').select2({
-                placeholder: 'Selecione uma secção',
-                allowClear: true,
-                language: {
-                    noResults: function() { return "Nenhum resultado encontrado"; },
-                    searching: function() { return "Pesquisando..."; }
-                }
-            });
+            // Inicializar Select2 com Tema Aurora
+            $(document).ready(function() {
+                $('select').select2({
+                    placeholder: 'Escolha uma opção...',
+                    width: '100%'
+                });
 
-
-
-            // Carregar secções automaticamente ao mudar departamento
-            $('#id_departamento').on('change', function() {
-                const deptId = $(this).val();
-                const seccaoSelect = $('#id_seccao');
-                
-                // Limpar secções e resetar Select2
-                seccaoSelect.empty().append('<option value="">---------</option>');
-                
-                if (deptId) {
-                    // Mostrar loading visual se necessário ou apenas aguardar
+                // Injetar Estilos Select2
+                // CSS customizado para Select2 (Aurora Premium)
+                $("<style>").prop("type", "text/css").html(`
+                    /* Global Select2 Aurora Styles */
+                    .select2-container--default .select2-selection--single {
+                        background-color: #ffffff;
+                        border: 2px solid #f1f5f9;
+                        border-radius: 12px;
+                        height: 48px;
+                        padding: 8px 12px;
+                        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    }
+                    .select2-container--default.select2-container--focus .select2-selection--single {
+                        border-color: #c8102e;
+                        background-color: #ffffff;
+                        box-shadow: 0 0 0 4px rgba(200, 16, 46, 0.05);
+                    }
+                    .select2-container--default .select2-selection--single .select2-selection__rendered {
+                        color: #0f172a;
+                        font-weight: 600;
+                        font-size: 0.875rem;
+                        line-height: normal;
+                    }
+                    .select2-container--default .select2-selection--single .select2-selection__arrow {
+                        height: 46px;
+                        right: 12px;
+                    }
                     
-                    fetch(`/ajax/seccoes-departamento/?departamento_id=${deptId}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            data.seccoes.forEach(sec => {
-                                const newOption = new Option(sec.nome, sec.id, false, false);
-                                seccaoSelect.append(newOption);
-                            });
-                            seccaoSelect.trigger('change'); // Atualizar Select2
-                        })
-                        .catch(err => console.error('Erro ao carregar secções:', err));
-                } else {
-                    seccaoSelect.trigger('change');
-                }
+                    /* Dropdown Results */
+                    .select2-dropdown {
+                        border: none;
+                        border-radius: 16px;
+                        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                        margin-top: 8px;
+                        overflow: hidden;
+                    }
+                    .select2-results__option--highlighted[aria-selected] {
+                        background-color: #fef2f2 !important;
+                        color: #c8102e !important;
+                    }
+                    .select2-results__option {
+                        padding: 10px 16px;
+                        font-size: 0.875rem;
+                        font-weight: 500;
+                        color: #475569;
+                    }
+                `).appendTo("head");
+
+                // Lógica de Filtragem Dinâmica (AJAX)
+                $('#id_departamento').on('change', function() {
+                    const deptId = $(this).val();
+                    const seccaoSelect = $('#id_seccao');
+                    const seccaoContainer = $('#seccao-container');
+                    
+                    seccaoSelect.empty().append('<option value="">Seleccione a Secção...</option>');
+                    
+                    if (deptId) {
+                        seccaoContainer.css('opacity', '0.5');
+                        fetch(`/ajax/seccoes-departamento/?departamento_id=${deptId}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.seccoes.length > 0) {
+                                    data.seccoes.forEach(sec => {
+                                        seccaoSelect.append(new Option(sec.nome, sec.id, false, false));
+                                    });
+                                    seccaoContainer.show().css('opacity', '1');
+                                } else {
+                                    seccaoContainer.hide();
+                                }
+                                seccaoSelect.trigger('change');
+                            })
+                            .catch(err => console.error('Erro AJAX:', err));
+                    } else {
+                        seccaoSelect.trigger('change');
+                    }
+                });
             });
         });
     </script>
