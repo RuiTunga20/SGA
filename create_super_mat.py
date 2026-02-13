@@ -13,9 +13,9 @@ def create_super_admin():
     print("--- CRIANDO SUPERUSER ---")
     
     # 1. Get MAT Admin
-    try:
-        mat = Administracao.objects.get(tipo_municipio='M')
-    except Administracao.DoesNotExist:
+    # 1. Get MAT Admin
+    mat = Administracao.objects.filter(tipo_municipio='M').first()
+    if not mat:
         print("Erro: MAT não encontrado.")
         return
 
