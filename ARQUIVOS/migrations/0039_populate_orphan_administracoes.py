@@ -22,29 +22,32 @@ def populate_orphan_administracoes(apps, schema_editor):
         if admin.tipo_municipio not in admins_por_tipo:
             admins_por_tipo[admin.tipo_municipio] = admin
     
-    # NOVO: Criar admins padrão para cada tipo se não existirem
-    # Isso é necessário para bancos de dados novos (ex: testes)
-    # [COMENTADO] Administrações padrão não são mais necessárias após população completa
-    # for tipo in ['A', 'B', 'C', 'D', 'E']:
-    #     if tipo not in admins_por_tipo:
-    #         admin_padrao, created = Administracao.objects.get_or_create(
-    #             tipo_municipio=tipo,
-    #             defaults={'nome': f'Administração Padrão Tipo {tipo}'}
-    #         )
-    #         admins_por_tipo[tipo] = admin_padrao
-    #         if created:
-    #             print(f"  [CREATED] Admin padrão Tipo {tipo}")
+    # 0. Criar admins padrão para cada tipo se não existirem
+    # Isso garante que SEMPRE haverá uma administração destino para registros órfãos
+    tipos_padrao = ['A', 'B', 'C', 'D', 'E', 'G', 'M']
+    for tipo in tipos_padrao:
+        if tipo not in admins_por_tipo:
+            admin_padrao, created = Administracao.objects.get_or_create(
+                tipo_municipio=tipo,
+                defaults={'nome': f'Administração Padrão (Tipo {tipo})', 'provincia': 'Luanda'}
+            )
+            admins_por_tipo[tipo] = admin_padrao
+            if created:
+                print(f"  [CREATED] Admin padrão Tipo {tipo}: {admin_padrao.nome}")
     
+    # Fallback mestre: primeira administração qualquer
+    first_any_admin = Administracao.objects.first()
+
     # 1. Migrar Departamentos órfãos
     dept_orfaos = Departamento.objects.filter(administracao__isnull=True)
     for dept in dept_orfaos:
-        admin_compativel = admins_por_tipo.get(dept.tipo_municipio)
+        admin_compativel = admins_por_tipo.get(dept.tipo_municipio) or first_any_admin
         if admin_compativel:
             dept.administracao = admin_compativel
             dept.save(update_fields=['administracao'])
             print(f"  [DEPT] {dept.nome} -> {admin_compativel.nome}")
         else:
-            print(f"  [WARN] Departamento {dept.id} sem admin compatível (Tipo {dept.tipo_municipio})")
+            print(f"  [ERROR] Impossível migrar Departamento {dept.id}: Nenhuma Administração encontrada no banco.")
     
     # 2. Migrar Usuários órfãos
     users_orfaos = CustomUser.objects.filter(administracao__isnull=True)
@@ -55,12 +58,12 @@ def populate_orphan_administracoes(apps, schema_editor):
             user.save(update_fields=['administracao'])
             print(f"  [USER] {user.username} -> {user.administracao.nome}")
         else:
-            # Fallback: primeira administração
-            first_admin = Administracao.objects.first()
-            if first_admin:
-                user.administracao = first_admin
+            # Fallback: primeira administração do mesmo tipo ou qualquer uma
+            admin_compativel = first_any_admin
+            if admin_compativel:
+                user.administracao = admin_compativel
                 user.save(update_fields=['administracao'])
-                print(f"  [USER] {user.username} -> {first_admin.nome} (fallback)")
+                print(f"  [USER] {user.username} -> {admin_compativel.nome} (fallback)")
     
     # 3. Migrar Documentos órfãos
     docs_orfaos = Documento.objects.filter(administracao__isnull=True)
@@ -76,13 +79,16 @@ def populate_orphan_administracoes(apps, schema_editor):
         # Prioridade 3: Admin do departamento atual
         elif doc.departamento_atual and doc.departamento_atual.administracao:
             admin = doc.departamento_atual.administracao
+        # Prioridade 4: Fallback mestre
+        else:
+            admin = first_any_admin
         
         if admin:
             doc.administracao = admin
             doc.save(update_fields=['administracao'])
             print(f"  [DOC] {doc.numero_protocolo} -> {admin.nome}")
         else:
-            print(f"  [WARN] Documento {doc.id} sem admin identificável")
+            print(f"  [WARN] Documento {doc.id} sem admin identificável e sem fallback")
 
 
 def reverse_populate(apps, schema_editor):
